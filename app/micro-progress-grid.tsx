@@ -13,7 +13,7 @@ type Props = {
   tone?: "light" | "dark";
 };
 
-export function MicroProgressGrid({
+function MicroProgressGrid({
   rows = 4,
   cols = 5,
   filled = 0,

@@ -80,7 +80,7 @@
 
 import React, { useMemo } from "react";
 import { Text, View } from "react-native";
-import { MicroProgressGrid } from "./micro-progress-grid";
+import MicroProgressGrid from "./micro-progress-grid";
 
 type PlayerPillProps = {
   name: string;
