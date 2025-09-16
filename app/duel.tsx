@@ -26,7 +26,10 @@ export default function Duel() {
             placeholder="Enter code to join game room"
             placeholderTextColor={"black"}
           />
-          <Pressable className="w-1/4 bg-fuchsia-400 rounded-lg p-2 mt-4 h-16 items-center justify-center">
+          <Pressable
+            onPress={() => router.push("/duel-game-start")}
+            className="w-1/4 bg-fuchsia-400 rounded-lg p-2 mt-4 h-16 items-center justify-center"
+          >
             <Text className="text-white font-bold">Join Game</Text>
           </Pressable>
         </View>
