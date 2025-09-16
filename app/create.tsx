@@ -47,7 +47,7 @@ export default function Create() {
             placeholderTextColor={"black"}
           />
           <Pressable
-            onPress={() => router.push("/game-start")}
+            onPress={() => router.push("/battle-player-start")}
             className="w-1/4 bg-fuchsia-400 rounded-lg p-2 mt-4 h-16 items-center justify-center"
           >
             <Entypo name="controller-play" size={24} color="white" />
