@@ -4,7 +4,7 @@ import { Modal, Pressable, Text, View } from "react-native";
 type Tile = "correct" | "present" | "absent" | "idle";
 type GuessRow = Tile[]; // length 5 ideally
 
-export function OpponentProgressModal({
+function OpponentProgressModal({
   visible,
   onClose,
   recent = [],
@@ -57,3 +57,5 @@ export function OpponentProgressModal({
     </Modal>
   );
 }
+
+export default OpponentProgressModal;
