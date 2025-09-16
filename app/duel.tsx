@@ -1,4 +1,5 @@
-import { Feather, Fontisto, MaterialCommunityIcons } from "@expo/vector-icons";
+import NavHeader from "@/components/NavHeader";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,15 +8,10 @@ export default function Duel() {
   const router = useRouter();
   return (
     <SafeAreaView>
-      <View className="min-h-full bg-gray-100 mt-4 px-4">
-        <View className="flex flex-row items-center w-full px-4">
-          <View className="flex-row space-x-4 justify-end w-full">
-            <Fontisto name="person" size={24} color="black" />
-            <Feather name="sun" size={24} color="black" />
-          </View>
-        </View>
+      <View className=" bg-gray-100 px-4">
+        <NavHeader />
 
-        <View className="flex-row items-center space-x-3 justify-start px-4">
+        <View className="flex-row items-center space-x-3 justify-start mt-4">
           <MaterialCommunityIcons name="sword-cross" size={24} color="black" />
           <Text className="text-2xl font-bold">Duel (1x1)</Text>
         </View>
