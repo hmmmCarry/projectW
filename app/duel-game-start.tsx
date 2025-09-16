@@ -1,10 +1,14 @@
 import GameKeyboard from "@/components/Keyboard";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useState } from "react";
 import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { OpponentProgressModal } from "./opponent-progression-modal";
+import { PlayerPill } from "./player-pill";
 
 export default function DuelGameStart() {
+    const [showOppModal, setShowOppModal] = useState(false);
+
   return (
     <SafeAreaView className="flex-1">
       <View className="min-h-full bg-gray-100 px-4">
@@ -13,7 +17,23 @@ export default function DuelGameStart() {
           <Text>Go Back</Text>
         </View>
 
-        <View className="border w-full h-16 rounded-2xl mt-2"></View>
+        <PlayerPill
+  name="Tipsy preacher"
+  avatar="🧪"
+  wins={0}
+  streak={0}
+  online
+  guessesCount={2}   // show 2/6 progress, scaled into the 4x4 grid
+/>
+
+      <OpponentProgressModal
+        visible={showOppModal}
+        onClose={() => setShowOppModal(false)}
+        recent={[
+          ["present", "correct", "absent", "absent", "idle"],
+          ["absent", "present", "idle", "idle", "idle"],
+        ]}
+      />
 
         <View className="flex-row items-center justify-center gap-2 h-20 rounded-2xl mt-1">
           <View className="size-16 rounded-2xl bg-gray-200"></View>
