@@ -52,7 +52,9 @@ export default function Index() {
           className="w-full px-4 space-x-4"
           contentContainerStyle={{ gap: 10 }}
         >
-          <View className="h-32 w-52 bg-gray-400 rounded-lg mt-4"></View>
+          <Pressable onPress={() => router.push("/battle-royale-lobby")}>
+            <View className="h-32 w-52 bg-gray-400 rounded-lg mt-4"></View>
+          </Pressable>
           <View className="h-32 w-52 bg-gray-400 rounded-lg mt-4"></View>
         </ScrollView>
 

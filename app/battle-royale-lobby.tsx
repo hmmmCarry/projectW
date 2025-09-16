@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function Duel() {
+export default function BattleRoyaleLobby() {
   const router = useRouter();
   return (
     <SafeAreaView>
@@ -17,7 +17,7 @@ export default function Duel() {
 
         <View className="flex-row items-center space-x-3 justify-start px-4">
           <MaterialCommunityIcons name="sword-cross" size={24} color="black" />
-          <Text className="text-2xl font-bold">Duel (1x1)</Text>
+          <Text className="text-2xl font-bold">Battle Royale</Text>
         </View>
 
         <View className="flex-row gap-2 w-full ">
@@ -37,7 +37,7 @@ export default function Duel() {
         <View className="bg-gray-200 h-1 mt-4"></View>
 
         <Pressable
-          onPress={() => router.push("/duel-game-start")}
+          onPress={() => router.push("/create")}
           className="bg-fuchsia-400 rounded-lg mt-4 h-16 items-center justify-center mx-4"
         >
           <Text className="text-white font-bold">Create Room</Text>
