@@ -1,42 +1,135 @@
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
-// Keyboard layout rows
-const KEYS = [
-  ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-  ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-  ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "⌫"],
-];
+type EnterStatus = "default" | "ready" | "disabled";
 
-// Example colors: green (correct), yellow (present), gray (wrong)
-const keyColors = {
-  A: "bg-green-700/70",
-  S: "bg-green-700/70",
-  D: "bg-green-700/70",
-  E: "bg-green-700/70",
-  I: "bg-green-700/70",
-  N: "bg-green-700/70",
-  B: "bg-green-700/70",
-  W: "bg-gray-500",
-  Y: "bg-gray-500",
-  F: "bg-gray-500",
-  U: "bg-gray-500",
+type Props = {
+  onKeyPress: (key: string) => void;
+  enterStatus?: EnterStatus;
+  disabled?: boolean;
 };
 
-export default function GameKeyboard({ onKeyPress }: { onKeyPress: any }) {
+type KeyDef = {
+  code: string;
+  flex?: number;
+};
+
+const KEY_LAYOUT: KeyDef[][] = [
+  [
+    { code: "Q" },
+    { code: "W" },
+    { code: "E" },
+    { code: "R" },
+    { code: "T" },
+    { code: "Y" },
+    { code: "U" },
+    { code: "I" },
+    { code: "O" },
+    { code: "P" },
+  ],
+  [
+    { code: "A" },
+    { code: "S" },
+    { code: "D" },
+    { code: "F" },
+    { code: "G" },
+    { code: "H" },
+    { code: "J" },
+    { code: "K" },
+    { code: "L" },
+  ],
+  [
+    { code: "ENTER", flex: 1.4 },
+    { code: "Z" },
+    { code: "X" },
+    { code: "C" },
+    { code: "V" },
+    { code: "B" },
+    { code: "N" },
+    { code: "M" },
+    { code: "BACKSPACE", flex: 1.4 },
+  ],
+];
+
+const KEY_LABEL: Record<string, string> = {
+  ENTER: "ENTER",
+  BACKSPACE: "DEL",
+};
+
+function getKeyBackground(code: string, enterStatus: EnterStatus) {
+  if (code === "ENTER") {
+    if (enterStatus === "ready") return "#4338ca";
+    if (enterStatus === "disabled") return "#d1d5db";
+    return "#111827";
+  }
+  if (code === "BACKSPACE") {
+    return "#4b5563";
+  }
+  return "#e5e7eb";
+}
+
+function getKeyForeground(code: string, enterStatus: EnterStatus) {
+  if (code === "ENTER") {
+    if (enterStatus === "disabled") return "#6b7280";
+    return "#fff";
+  }
+  if (code === "BACKSPACE") return "#fff";
+  return "#111827";
+}
+
+export default function GameKeyboard({
+  onKeyPress,
+  enterStatus = "default",
+  disabled = false,
+}: Props) {
+  const handlePress = (code: string) => {
+    if (disabled) return;
+    if (code === "ENTER" && enterStatus === "disabled") return;
+    onKeyPress(code);
+  };
+
   return (
-    <View className="p-3 items-center justify-center">
-      {KEYS.map((row, rowIndex) => (
-        <View key={rowIndex} className="flex-row mb-1">
+    <View
+      style={{
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 20,
+        backgroundColor: "#f4f4f5",
+      }}
+    >
+      {KEY_LAYOUT.map((row, rowIndex) => (
+        <View
+          key={rowIndex}
+          style={{ flexDirection: "row", justifyContent: "center", marginBottom: rowIndex === KEY_LAYOUT.length - 1 ? 0 : 10 }}
+        >
           {row.map((key) => {
-            const bgClass = keyColors[key] || "bg-gray-300";
+            const background = getKeyBackground(key.code, enterStatus);
+            const foreground = getKeyForeground(key.code, enterStatus);
+            const isEnter = key.code === "ENTER";
+            const isBackspace = key.code === "BACKSPACE";
+            const flex = key.flex ?? 1;
+
             return (
               <TouchableOpacity
-                key={key}
-                className={`m-1 px-3 py-4 rounded ${bgClass}`}
-                onPress={() => onKeyPress(key)}
+                key={key.code}
+                onPress={() => handlePress(key.code)}
+                activeOpacity={0.85}
+                disabled={disabled || (key.code === "ENTER" && enterStatus === "disabled")}
+                style={{
+                  flex,
+                  marginHorizontal: 4,
+                  borderRadius: 12,
+                  backgroundColor: background,
+                  minHeight: 54,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: isEnter || isBackspace ? 8 : 0,
+                  opacity: disabled ? 0.5 : 1,
+                }}
               >
-                <Text className="text-white font-bold text-base">{key}</Text>
+                <Text style={{ color: foreground, fontWeight: "700", fontSize: 16 }}>
+                  {KEY_LABEL[key.code] || key.code}
+                </Text>
               </TouchableOpacity>
             );
           })}

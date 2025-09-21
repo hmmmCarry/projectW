@@ -1,104 +1,25 @@
-// import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-// import React from "react";
-// import { Pressable, Text, View } from "react-native";
-
-// type PlayerPillProps = {
-//   name: string;
-//   avatar?: string;            // emoji or single letter
-//   wins?: number;
-//   streak?: number;
-//   isHost?: boolean;
-//   connected?: boolean;        // online indicator
-//   onPressProgress?: () => void; // grid button handler
-//   className?: string;         // extra Tailwind classes if you need
-// };
-
-// export function PlayerPill({
-//   name,
-//   avatar = "😊",
-//   wins = 0,
-//   streak = 0,
-//   isHost = false,
-//   connected = true,
-//   onPressProgress,
-//   className = "",
-// }: PlayerPillProps) {
-//   return (
-//     <View
-//       className={`mx-4 rounded-2xl bg-neutral-900 border border-white/10 px-3 py-2 flex-row items-center ${className}`}
-//     >
-//       {/* Connection dot */}
-//       <View className="mr-2">
-//         <View
-//           className={`w-2.5 h-2.5 rounded-full ${
-//             connected ? "bg-emerald-400" : "bg-neutral-500"
-//           }`}
-//         />
-//       </View>
-
-//       {/* Avatar */}
-//       <View className="w-9 h-9 rounded-full bg-purple-600/20 items-center justify-center mr-2">
-//         <Text className="text-purple-300 font-semibold">{avatar}</Text>
-//       </View>
-
-//       {/* Name & stats */}
-//       <View className="flex-1 min-w-0">
-//         <View className="flex-row items-center gap-1">
-//           <Text
-//             numberOfLines={1}
-//             className="text-neutral-100 font-semibold"
-//           >
-//             {name}
-//           </Text>
-
-//           {isHost && (
-//             <MaterialCommunityIcons
-//               name="crown-outline"
-//               size={14}
-//               color="#f5c052"
-//             />
-//           )}
-//         </View>
-
-//         <Text className="text-xs text-neutral-400">
-//           W:{wins}   STREAK:{streak}
-//         </Text>
-//       </View>
-
-//       {/* Opponent progress (mini-board) button */}
-//       <Pressable
-//         onPress={onPressProgress}
-//         className="w-9 h-9 rounded-xl bg-white/5 items-center justify-center active:opacity-80"
-//         accessibilityRole="button"
-//         accessibilityLabel="Show progress"
-//       >
-//         <Ionicons name="grid-outline" size={18} color="#cdd0d5" />
-//       </Pressable>
-//     </View>
-//   );
-// }
-
-import React, { useMemo } from "react";
-import { Text, View } from "react-native";
+﻿import React, { useMemo } from "react";
+import { Pressable, Text, View } from "react-native";
 import MicroProgressGrid from "./micro-progress-grid";
 
 type PlayerPillProps = {
   name: string;
-  avatar?: string;             // emoji or char
+  avatar?: string;
   wins?: number;
   streak?: number;
   online?: boolean;
-  // Progress source (e.g., number of guesses made)
-  guessesCount?: number;       // 0..6 for Wordle
-  maxGuesses?: number;         // default 6
-  // Grid config (kept 4x4 to match your mock)
+  guessesCount?: number;
+  maxGuesses?: number;
   gridRows?: number;
   gridCols?: number;
+  onPress?: () => void;
+  active?: boolean;
+  showProgressGrid?: boolean;
 };
 
-export function PlayerPill({
+export default function PlayerPill({
   name,
-  avatar = "😊",
+  avatar = "?",
   wins = 0,
   streak = 0,
   online = true,
@@ -106,75 +27,83 @@ export function PlayerPill({
   maxGuesses = 6,
   gridRows = 3,
   gridCols = 5,
+  onPress,
+  active = false,
+  showProgressGrid = true,
 }: PlayerPillProps) {
-  // map 0..maxGuesses onto 0..(rows*cols)
   const totalCells = gridRows * gridCols;
   const filled = useMemo(() => {
-    const ratio = Math.max(0, Math.min(1, guessesCount / maxGuesses));
+    if (!showProgressGrid) return 0;
+    const safeMax = Math.max(1, maxGuesses);
+    const ratio = Math.max(0, Math.min(1, guessesCount / safeMax));
     return Math.round(ratio * totalCells);
-  }, [guessesCount, maxGuesses, totalCells]);
+  }, [guessesCount, maxGuesses, totalCells, showProgressGrid]);
+
+  const containerBg = active ? "#312e81" : "#F6F6FE";
+  const containerBorder = active ? "rgba(49,46,129,0.7)" : "rgba(0,0,0,0.08)";
+  const textColor = active ? "#eef2ff" : "#111827";
+  const metaColor = active ? "rgba(238,242,255,0.7)" : "rgba(17,24,39,0.65)";
+
+  const Wrapper = onPress ? Pressable : View;
 
   return (
-    <View
+    <Wrapper
+      onPress={onPress}
+      disabled={!onPress}
       style={{
-        marginHorizontal: 16,
         borderRadius: 24,
-        backgroundColor: "#F6F6FE",
-        borderColor: "rgba(0,0,0,0.08)",
+        backgroundColor: containerBg,
+        borderColor: containerBorder,
         borderWidth: 1,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
         flexDirection: "row",
         alignItems: "center",
+        gap: 10,
+        opacity: onPress ? 1 : 0.95,
       }}
     >
-      {/* Avatar + online dot */}
-      <View style={{ marginRight: 8 }}>
+      <View style={{ position: "relative" }}>
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            backgroundColor: "white",
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: active ? "rgba(255,255,255,0.15)" : "white",
             borderWidth: 1,
-            borderColor: "rgba(0,0,0,0.08)",
+            borderColor: active ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.08)",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text style={{ fontSize: 18 }}>{avatar}</Text>
+          <Text style={{ fontSize: 20, color: textColor }}>{avatar}</Text>
         </View>
-        {/* online dot anchored to bottom-left like your mock */}
         <View
           style={{
             position: "absolute",
-            left: -2,
-            bottom: -2,
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: online ? "#22c55e" : "rgba(0,0,0,0.2)",
+            left: -3,
+            bottom: -3,
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: online ? "#22c55e" : "rgba(0,0,0,0.25)",
             borderWidth: 2,
-            borderColor: "#F6F6FE",
+            borderColor: containerBg,
           }}
         />
       </View>
 
-      {/* Name + stats */}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           numberOfLines={1}
-          style={{
-            color: "#111827",
-            fontWeight: "600",
-          }}
+          style={{ color: textColor, fontWeight: "600", fontSize: 16 }}
         >
           {name}
         </Text>
         <Text
           style={{
-            color: "rgba(17,24,39,0.65)",
-            fontWeight: "700",
+            color: metaColor,
+            fontWeight: "600",
             fontSize: 12,
             letterSpacing: 0.2,
           }}
@@ -183,9 +112,15 @@ export function PlayerPill({
         </Text>
       </View>
 
-      {/* Real progress grid*/}
-      <MicroProgressGrid rows={gridRows} cols={gridCols} filled={7} gap={1}  // the rounded frame padding
-/>
-    </View>
+      {showProgressGrid ? (
+        <MicroProgressGrid
+          rows={gridRows}
+          cols={gridCols}
+          filled={filled}
+          gap={1}
+          tone={active ? "dark" : "light"}
+        />
+      ) : null}
+    </Wrapper>
   );
 }
