@@ -1,5 +1,5 @@
-import React from "react";
-import { useTheme } from "@/lib/theme";
+﻿import React from "react";
+import { useTheme } from "@/providers/ThemeProvider";
 import { View } from "react-native";
 
 type CellState = "correct" | "present" | "absent" | "idle" | "filled";

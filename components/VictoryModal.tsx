@@ -3,7 +3,8 @@ import React, { useCallback, useEffect, useMemo } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useSafeModal } from "@/lib/safeModal";
-import { Theme, useTheme } from "@/lib/theme";
+import { Theme } from "@/lib/theme";
+import { useTheme } from "@/providers/ThemeProvider";
 
 type Props = {
   visible: boolean;
@@ -93,28 +94,18 @@ export default function VictoryModal({
         <Text style={styles.subheading}>The word was</Text>
 
         <View style={styles.wordRow}>
-          {letters.map((letter, index) => {
-            const trimmed = letter.trim();
-            const tileStyles = [styles.tileBase];
-            const letterStyles = [styles.letter];
-
-            if (trimmed) {
-              tileStyles.push(styles.tileCorrect);
-              letterStyles.push(styles.letterOnColor);
-            } else {
-              tileStyles.push(styles.tileEmpty);
-            }
-
-            if (index !== letters.length - 1) {
-              tileStyles.push(styles.tileGap);
-            }
-
-            return (
-              <View key={index} style={tileStyles}>
-                <Text style={letterStyles}>{trimmed}</Text>
-              </View>
-            );
-          })}
+          {letters.map((letter, index) => (
+            <View
+              key={index}
+              style={[
+                styles.tileBase,
+                styles.tileCorrect,
+                index !== letters.length - 1 && styles.tileGap,
+              ]}
+            >
+              <Text style={[styles.letter, styles.letterOnColor]}>{letter.trim()}</Text>
+            </View>
+          ))}
         </View>
 
         <Pressable style={styles.rematchButton} onPress={handleRematch} accessibilityRole="button">
@@ -220,9 +211,6 @@ function createStyles(theme: Theme) {
     tileGap: {
       marginRight: 10,
     },
-    tileEmpty: {
-      backgroundColor: theme.colors.surfaceSubtle,
-    },
     tileCorrect: {
       backgroundColor: theme.wordle.correct,
       borderColor: theme.wordle.correct,
@@ -250,5 +238,7 @@ function createStyles(theme: Theme) {
     },
   });
 }
+
+
 
 
