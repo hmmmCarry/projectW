@@ -1,6 +1,9 @@
-﻿import React, { useMemo } from "react";
+import React, { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import MicroProgressGrid from "./micro-progress-grid";
+
+type GuessStateInput = "correct" | "present" | "absent" | "tbd" | "empty" | "idle" | null | undefined;
+type GuessState = "correct" | "present" | "absent" | "idle";
 
 type PlayerPillProps = {
   name: string;
@@ -15,6 +18,7 @@ type PlayerPillProps = {
   onPress?: () => void;
   active?: boolean;
   showProgressGrid?: boolean;
+  guessPatterns?: GuessStateInput[][];
 };
 
 export default function PlayerPill({
@@ -30,14 +34,30 @@ export default function PlayerPill({
   onPress,
   active = false,
   showProgressGrid = true,
+  guessPatterns,
 }: PlayerPillProps) {
   const totalCells = gridRows * gridCols;
-  const filled = useMemo(() => {
+
+  const sanitizedPatterns = useMemo(() => {
+    if (!showProgressGrid || !guessPatterns?.length) return undefined;
+    return guessPatterns.map((row) => {
+      return Array.from({ length: gridCols }, (_, idx) => {
+        const state = row?.[idx];
+        if (state === "correct" || state === "present" || state === "absent") {
+          return state as GuessState;
+        }
+        return "idle" as GuessState;
+      });
+    });
+  }, [guessPatterns, gridCols, showProgressGrid]);
+
+  const fallbackFilled = useMemo(() => {
+    if (sanitizedPatterns) return 0;
     if (!showProgressGrid) return 0;
     const safeMax = Math.max(1, maxGuesses);
     const ratio = Math.max(0, Math.min(1, guessesCount / safeMax));
     return Math.round(ratio * totalCells);
-  }, [guessesCount, maxGuesses, totalCells, showProgressGrid]);
+  }, [guessesCount, maxGuesses, showProgressGrid, totalCells, sanitizedPatterns]);
 
   const containerBg = active ? "#312e81" : "#F6F6FE";
   const containerBorder = active ? "rgba(49,46,129,0.7)" : "rgba(0,0,0,0.08)";
@@ -45,6 +65,8 @@ export default function PlayerPill({
   const metaColor = active ? "rgba(238,242,255,0.7)" : "rgba(17,24,39,0.65)";
 
   const Wrapper = onPress ? Pressable : View;
+
+  const gridProps = sanitizedPatterns ? { patterns: sanitizedPatterns } : { filled: fallbackFilled };
 
   return (
     <Wrapper
@@ -116,9 +138,11 @@ export default function PlayerPill({
         <MicroProgressGrid
           rows={gridRows}
           cols={gridCols}
-          filled={filled}
           gap={1}
           tone={active ? "dark" : "light"}
+          radius={3}
+          size={10}
+          {...gridProps}
         />
       ) : null}
     </Wrapper>
