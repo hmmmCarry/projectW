@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
+import { useTheme } from "@/providers/ThemeProvider";
 import MicroProgressGrid from "./micro-progress-grid";
 
 type GuessStateInput = "correct" | "present" | "absent" | "tbd" | "empty" | "idle" | null | undefined;
@@ -36,6 +37,7 @@ export default function PlayerPill({
   showProgressGrid = true,
   guessPatterns,
 }: PlayerPillProps) {
+  const theme = useTheme();
   const totalCells = gridRows * gridCols;
 
   const sanitizedPatterns = useMemo(() => {
@@ -59,10 +61,10 @@ export default function PlayerPill({
     return Math.round(ratio * totalCells);
   }, [guessesCount, maxGuesses, showProgressGrid, totalCells, sanitizedPatterns]);
 
-  const containerBg = active ? "#312e81" : "#F6F6FE";
-  const containerBorder = active ? "rgba(49,46,129,0.7)" : "rgba(0,0,0,0.08)";
-  const textColor = active ? "#eef2ff" : "#111827";
-  const metaColor = active ? "rgba(238,242,255,0.7)" : "rgba(17,24,39,0.65)";
+  const containerBg = active ? theme.colors.accent : theme.colors.surface;
+  const containerBorder = active ? theme.colors.accent : theme.colors.border;
+  const textColor = active ? theme.colors.textOnAccent : theme.colors.text;
+  const metaColor = active ? theme.colors.textOnAccent : theme.colors.textMuted;
 
   const Wrapper = onPress ? Pressable : View;
 
@@ -91,9 +93,9 @@ export default function PlayerPill({
             width: 40,
             height: 40,
             borderRadius: 20,
-            backgroundColor: active ? "rgba(255,255,255,0.15)" : "white",
+            backgroundColor: active ? "rgba(255,255,255,0.2)" : theme.colors.surfaceElevated,
             borderWidth: 1,
-            borderColor: active ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.08)",
+            borderColor: active ? "rgba(255,255,255,0.3)" : theme.colors.border,
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -108,7 +110,7 @@ export default function PlayerPill({
             width: 12,
             height: 12,
             borderRadius: 6,
-            backgroundColor: online ? "#22c55e" : "rgba(0,0,0,0.25)",
+            backgroundColor: online ? theme.colors.success : theme.colors.neutral,
             borderWidth: 2,
             borderColor: containerBg,
           }}
