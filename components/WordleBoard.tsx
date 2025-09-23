@@ -1,4 +1,5 @@
 ﻿import React, { useMemo } from "react";
+import { useTheme } from "@/lib/theme";
 import { StyleSheet, Text, View, ViewStyle, useWindowDimensions } from "react-native";
 
 type TileState = "empty" | "correct" | "present" | "absent" | "tbd";
@@ -50,15 +51,17 @@ export default function WordleBoard({
   guesses = [],
   rowCount = DEFAULT_ROWS,
   columnCount = DEFAULT_COLUMNS,
-  tone = "dark",
+  tone,
   framed = false,
   maxWidth,
   maxHeight,
   gap = DEFAULT_GAP,
   style,
 }: Props) {
+  const theme = useTheme();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const palette = tone === "dark" ? COLORS.dark : COLORS.light;
+  const resolvedTone = tone ?? (theme.mode === "dark" ? "dark" : "light");
+  const palette = resolvedTone === "dark" ? COLORS.dark : COLORS.light;
 
   const usableWidth = (maxWidth ?? windowWidth - 48);
   const usableHeight = (maxHeight ?? windowHeight);

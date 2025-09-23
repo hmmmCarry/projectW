@@ -1,8 +1,9 @@
 ﻿import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useSafeModal } from "@/lib/safeModal";
+import { Theme, useTheme } from "@/lib/theme";
 
 type Props = {
   visible: boolean;
@@ -25,6 +26,10 @@ export default function VictoryModal({
   isMeWinner = false,
   correctWord = "",
 }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const closeIconColor = theme.colors.text;
+
   const { visible: modalVisible, open, close } = useSafeModal(false, 80);
 
   useEffect(() => {
@@ -67,7 +72,7 @@ export default function VictoryModal({
           accessibilityRole="button"
           accessibilityLabel="Close"
         >
-          <Ionicons name="close" size={18} color="#e2e8f0" />
+          <Ionicons name="close" size={18} color={closeIconColor} />
         </Pressable>
 
         <View style={styles.avatarWrapper}>
@@ -77,20 +82,39 @@ export default function VictoryModal({
               <Text style={styles.initials}>{winnerInitials}</Text>
             </View>
             <View style={styles.crown}>
-              <FontAwesome5 name="crown" size={18} color="#fbbf24" />
+              <FontAwesome5 name="crown" size={18} color={theme.colors.warning} />
             </View>
           </View>
         </View>
 
-        <Text style={styles.heading}>{winnerName} {isMeWinner ? "(You)" : ""} won!</Text>
+        <Text style={styles.heading}>
+          {winnerName} {isMeWinner ? "(You)" : ""} won!
+        </Text>
         <Text style={styles.subheading}>The word was</Text>
 
         <View style={styles.wordRow}>
-          {letters.map((letter, index) => (
-            <View key={index} style={styles.letterTile}>
-              <Text style={styles.letter}>{letter.trim()}</Text>
-            </View>
-          ))}
+          {letters.map((letter, index) => {
+            const trimmed = letter.trim();
+            const tileStyles = [styles.tileBase];
+            const letterStyles = [styles.letter];
+
+            if (trimmed) {
+              tileStyles.push(styles.tileCorrect);
+              letterStyles.push(styles.letterOnColor);
+            } else {
+              tileStyles.push(styles.tileEmpty);
+            }
+
+            if (index !== letters.length - 1) {
+              tileStyles.push(styles.tileGap);
+            }
+
+            return (
+              <View key={index} style={tileStyles}>
+                <Text style={letterStyles}>{trimmed}</Text>
+              </View>
+            );
+          })}
         </View>
 
         <Pressable style={styles.rematchButton} onPress={handleRematch} accessibilityRole="button">
@@ -101,109 +125,130 @@ export default function VictoryModal({
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(15,23,42,0.75)",
-  },
-  card: {
-    position: "absolute",
-    left: 24,
-    right: 24,
-    top: "26%",
-    padding: 24,
-    borderRadius: 24,
-    backgroundColor: "#0f172a",
-    borderWidth: 1,
-    borderColor: "rgba(148,163,184,0.4)",
-    alignItems: "center",
-    gap: 16,
-  },
-  closeButton: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(148,163,184,0.12)",
-  },
-  avatarWrapper: {
-    marginTop: 12,
-  },
-  avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 24,
-    backgroundColor: "#1f2937",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emoji: {
-    fontSize: 44,
-  },
-  initialsPill: {
-    position: "absolute",
-    bottom: -12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: "#1f2937",
-    borderWidth: 1,
-    borderColor: "rgba(148,163,184,0.5)",
-  },
-  initials: {
-    color: "#f8fafc",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  crown: {
-    position: "absolute",
-    top: -12,
-    right: -12,
-  },
-  heading: {
-    marginTop: 24,
-    color: "#f8fafc",
-    fontSize: 24,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  subheading: {
-    color: "#cbd5f5",
-    fontSize: 14,
-  },
-  wordRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 8,
-  },
-  letterTile: {
-    width: 48,
-    height: 54,
-    borderRadius: 12,
-    backgroundColor: "#22c55e",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  letter: {
-    color: "#f8fafc",
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  rematchButton: {
-    marginTop: 12,
-    width: "100%",
-    paddingVertical: 14,
-    borderRadius: 999,
-    backgroundColor: "#2563eb",
-    alignItems: "center",
-  },
-  rematchText: {
-    color: "#f8fafc",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-});
+function createStyles(theme: Theme) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: theme.colors.backdrop,
+    },
+    card: {
+      position: "absolute",
+      left: 24,
+      right: 24,
+      top: "26%",
+      padding: 24,
+      borderRadius: 24,
+      backgroundColor: theme.colors.surfaceElevated,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: "center",
+      gap: 16,
+    },
+    closeButton: {
+      position: "absolute",
+      top: 16,
+      right: 16,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor:
+        theme.mode === "dark" ? "rgba(148,163,184,0.18)" : "rgba(15,23,42,0.08)",
+    },
+    avatarWrapper: {
+      marginTop: 12,
+    },
+    avatar: {
+      width: 90,
+      height: 90,
+      borderRadius: 24,
+      backgroundColor: theme.colors.surfaceSubtle,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emoji: {
+      fontSize: 44,
+    },
+    initialsPill: {
+      position: "absolute",
+      bottom: -12,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 999,
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.borderMuted,
+    },
+    initials: {
+      color: theme.colors.text,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    crown: {
+      position: "absolute",
+      top: -12,
+      right: -12,
+    },
+    heading: {
+      marginTop: 24,
+      color: theme.colors.text,
+      fontSize: 24,
+      fontWeight: "800",
+      textAlign: "center",
+    },
+    subheading: {
+      color: theme.colors.textMuted,
+      fontSize: 14,
+    },
+    wordRow: {
+      flexDirection: "row",
+      marginTop: 8,
+    },
+    tileBase: {
+      width: 48,
+      height: 54,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.borderMuted,
+      backgroundColor: theme.colors.surfaceSubtle,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    tileGap: {
+      marginRight: 10,
+    },
+    tileEmpty: {
+      backgroundColor: theme.colors.surfaceSubtle,
+    },
+    tileCorrect: {
+      backgroundColor: theme.wordle.correct,
+      borderColor: theme.wordle.correct,
+    },
+    letter: {
+      color: theme.colors.text,
+      fontSize: 22,
+      fontWeight: "800",
+    },
+    letterOnColor: {
+      color: theme.colors.textOnAccent,
+    },
+    rematchButton: {
+      marginTop: 12,
+      width: "100%",
+      paddingVertical: 14,
+      borderRadius: 999,
+      backgroundColor: theme.colors.accent,
+      alignItems: "center",
+    },
+    rematchText: {
+      color: theme.colors.textOnAccent,
+      fontSize: 16,
+      fontWeight: "700",
+    },
+  });
+}
+
+

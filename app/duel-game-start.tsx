@@ -373,7 +373,6 @@ export default function DuelGameStart() {
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 12 }}>
               <WordleBoard
                 guesses={myBoard}
-                tone="dark"
                 maxWidth={boardAreaSize.width || undefined}
                 maxHeight={boardAreaSize.height || undefined}
                 gap={6}
@@ -399,7 +398,6 @@ export default function DuelGameStart() {
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 12 }}>
               <WordleBoard
                 guesses={oppBoard}
-                tone="light"
                 maxWidth={boardAreaSize.width || undefined}
                 maxHeight={boardAreaSize.height || undefined}
                 gap={6}

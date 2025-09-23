@@ -1,4 +1,5 @@
 import React from "react";
+import { useTheme } from "@/lib/theme";
 import { View } from "react-native";
 
 type CellState = "correct" | "present" | "absent" | "idle" | "filled";
@@ -23,9 +24,11 @@ function MicroProgressGrid({
   size = 11,
   gap = 2,
   radius = 4,
-  tone = "light",
+  tone,
   patterns,
 }: Props) {
+  const { mode } = useTheme();
+  const resolvedTone = tone ?? (mode === "dark" ? "dark" : "light");
   const total = rows * cols;
   const hasPatterns = Array.isArray(patterns) && patterns.length > 0;
 
@@ -51,13 +54,13 @@ function MicroProgressGrid({
     ? paddedRows.flat()
     : Array.from({ length: total }, (_, i) => (i < Math.max(0, Math.min(total, filled)) ? "filled" : "idle"));
 
-  const border = tone === "dark" ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.10)";
+  const border = resolvedTone === "dark" ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.10)";
   const palette = {
-    idle: tone === "dark" ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)",
-    filled: tone === "dark" ? "rgba(255,255,255,0.28)" : "rgba(15,23,42,0.28)",
-    correct: tone === "dark" ? "#4ade80" : "#22c55e",
-    present: tone === "dark" ? "#fde047" : "#eab308",
-    absent: tone === "dark" ? "rgba(148,163,184,0.65)" : "#6b7280",
+    idle: resolvedTone === "dark" ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)",
+    filled: resolvedTone === "dark" ? "rgba(255,255,255,0.28)" : "rgba(15,23,42,0.28)",
+    correct: resolvedTone === "dark" ? "#4ade80" : "#22c55e",
+    present: resolvedTone === "dark" ? "#fde047" : "#eab308",
+    absent: resolvedTone === "dark" ? "rgba(148,163,184,0.65)" : "#6b7280",
   } as const;
 
   const colorFor = (state: CellState) => {
