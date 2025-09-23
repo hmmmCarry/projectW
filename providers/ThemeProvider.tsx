@@ -1,43 +1,53 @@
-import { themes } from "@/utils/color-theme";
-import React, { createContext, useState } from "react";
-import { StatusBar, View } from "react-native";
+﻿import React, { PropsWithChildren, createContext, useContext, useMemo, useState } from "react";
+import { Appearance, useColorScheme } from "react-native";
 
-interface ThemeProviderProps {
-  children: React.ReactNode;
+import { Theme, ThemeMode, getTheme } from "@/lib/theme";
+
+type ThemePreference = "system" | ThemeMode;
+
+type ThemeContextValue = {
+  theme: Theme;
+  mode: ThemeMode;
+  preference: ThemePreference;
+  setPreference: (value: ThemePreference) => void;
+};
+
+const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+
+export function ThemeProvider({ children }: PropsWithChildren) {
+  const systemScheme = useColorScheme() ?? Appearance.getColorScheme() ?? "light";
+  const [preference, setPreference] = useState<ThemePreference>("system");
+
+  const mode: ThemeMode = preference === "system" ? (systemScheme === "dark" ? "dark" : "light") : preference;
+  const theme = useMemo(() => getTheme(mode), [mode]);
+
+  const value = useMemo<ThemeContextValue>(
+    () => ({
+      theme,
+      mode,
+      preference,
+      setPreference,
+    }),
+    [theme, mode, preference],
+  );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
-type ThemeContextType = {
-  theme: "light" | "dark";
-  toggleTheme: () => void;
-};
+export function useTheme() {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
+  return ctx.theme;
+}
 
-export const ThemeContext = createContext<ThemeContextType | undefined>({
-  theme: "light",
-  toggleTheme: () => {},
-});
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+export function useThemePreference() {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error("useThemePreference must be used within ThemeProvider");
+  return {
+    preference: ctx.preference,
+    setPreference: ctx.setPreference,
+    mode: ctx.mode,
   };
+}
 
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <StatusBar
-        barStyle={theme === "dark" ? "light-content" : "dark-content"}
-      />
-      <View style={themes[theme]} className="flex-1">
-        {children}
-      </View>
-    </ThemeContext.Provider>
-  );
-};
 
-export const useTheme = () => {
-  const context = React.useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
-};

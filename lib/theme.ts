@@ -1,5 +1,3 @@
-﻿import { useColorScheme } from "react-native";
-
 type WordlePalette = {
   correct: string;
   present: string;
@@ -24,13 +22,15 @@ type ThemeColors = {
   backdrop: string;
 };
 
-type Theme = {
-  mode: "light" | "dark";
+export type ThemeMode = "light" | "dark";
+
+export type Theme = {
+  mode: ThemeMode;
   colors: ThemeColors;
   wordle: WordlePalette;
 };
 
-const lightTheme: Theme = {
+export const lightTheme: Theme = {
   mode: "light",
   colors: {
     background: "#f8fafc",
@@ -56,7 +56,7 @@ const lightTheme: Theme = {
   },
 };
 
-const darkTheme: Theme = {
+export const darkTheme: Theme = {
   mode: "dark",
   colors: {
     background: "#0b1120",
@@ -82,13 +82,6 @@ const darkTheme: Theme = {
   },
 };
 
-export function getTheme(mode: "light" | "dark" = "light"): Theme {
+export function getTheme(mode: ThemeMode = "light"): Theme {
   return mode === "dark" ? darkTheme : lightTheme;
 }
-
-export function useTheme(): Theme {
-  const scheme = useColorScheme();
-  return scheme === "dark" ? darkTheme : lightTheme;
-}
-
-export type { Theme };
