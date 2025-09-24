@@ -9,9 +9,10 @@ type Props = {
   greetingName?: string; // shows "Hello there, {name}" when provided and on a root screen
   showBack?: boolean;
   roomId?: string;
+  timer?: string;
 };
 
-const NavHeader = ({ title, greetingName, showBack, roomId }: Props) => {
+const NavHeader = ({ title, greetingName, showBack, roomId, timer }: Props) => {
   const router = useRouter();
   const segments = useSegments();
   const theme = useTheme();
@@ -58,7 +59,13 @@ const NavHeader = ({ title, greetingName, showBack, roomId }: Props) => {
           ) : null}
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          {timer ? (
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 10, marginBottom: 2 }}>Time</Text>
+              <Text style={{ color: theme.colors.text, fontWeight: "700" }}>{timer}</Text>
+            </View>
+          ) : null}
           {roomId ? (
             <View style={{ alignItems: "flex-end" }}>
               <Text style={{ color: theme.colors.textMuted, fontSize: 10, marginBottom: 2 }}>Room</Text>
