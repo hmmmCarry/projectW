@@ -1,8 +1,10 @@
-﻿import React from "react";
-import { useTheme } from "@/providers/ThemeProvider";
+﻿import { useTheme } from "@/providers/ThemeProvider";
+import { normalizeGuessStates } from "@/utils/normalizeGuess";
+import React from "react";
 import { View } from "react-native";
 
 type CellState = "correct" | "present" | "absent" | "idle" | "filled";
+type CellStateInput = CellState | "green" | "yellow" | "gray";
 
 type Props = {
   rows?: number;          // default 4
@@ -14,7 +16,7 @@ type Props = {
   radius?: number;        // corner radius for each square
   /** light/dark neutral greys only (no brand yet) */
   tone?: "light" | "dark";
-  patterns?: CellState[][]; // optional explicit grid states
+  patterns?: CellStateInput[][]; // optional explicit grid states
 };
 
 function MicroProgressGrid({
@@ -27,8 +29,8 @@ function MicroProgressGrid({
   tone,
   patterns,
 }: Props) {
-  const { mode } = useTheme();
-  const resolvedTone = tone ?? (mode === "dark" ? "dark" : "light");
+  const theme = useTheme();
+  const resolvedTone = tone ?? (theme.mode === "dark" ? "dark" : "light");
   const total = rows * cols;
   const hasPatterns = Array.isArray(patterns) && patterns.length > 0;
 
@@ -37,12 +39,22 @@ function MicroProgressGrid({
         Array.from({ length: cols }, (_, i) => {
           const value = row?.[i];
           if (value === "correct" || value === "present" || value === "absent") {
-            return value;
+            return value as CellState;
+          }
+          if (value === "green" || value === "yellow" || value === "gray") {
+            const normalized = normalizeGuessStates([value]);
+            return normalized[0] as CellState;
           }
           return "idle";
         })
       )
     : undefined;
+
+  // Debug logging
+  if (hasPatterns) {
+    console.log("MicroProgressGrid patterns:", patterns);
+    console.log("MicroProgressGrid sanitizedPatterns:", sanitizedPatterns);
+  }
 
   const activeRows = sanitizedPatterns ? sanitizedPatterns.slice(-rows) : undefined;
   const idleRow = Array.from({ length: cols }, () => "idle" as CellState);
@@ -54,13 +66,13 @@ function MicroProgressGrid({
     ? paddedRows.flat()
     : Array.from({ length: total }, (_, i) => (i < Math.max(0, Math.min(total, filled)) ? "filled" : "idle"));
 
-  const border = resolvedTone === "dark" ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.10)";
+  const border = theme.colors.border;
   const palette = {
-    idle: resolvedTone === "dark" ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)",
-    filled: resolvedTone === "dark" ? "rgba(255,255,255,0.28)" : "rgba(15,23,42,0.28)",
-    correct: resolvedTone === "dark" ? "#4ade80" : "#22c55e",
-    present: resolvedTone === "dark" ? "#fde047" : "#eab308",
-    absent: resolvedTone === "dark" ? "rgba(148,163,184,0.65)" : "#6b7280",
+    idle: theme.colors.surfaceElevated,
+    filled: theme.colors.neutral,
+    correct: theme.wordle.correct,
+    present: theme.wordle.present,
+    absent: theme.wordle.absent,
   } as const;
 
   const colorFor = (state: CellState) => {

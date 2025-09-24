@@ -1,9 +1,10 @@
+import { useTheme } from "@/providers/ThemeProvider";
+import { normalizeGuessStates } from "@/utils/normalizeGuess";
 import React, { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useTheme } from "@/providers/ThemeProvider";
 import MicroProgressGrid from "./micro-progress-grid";
 
-type GuessStateInput = "correct" | "present" | "absent" | "tbd" | "empty" | "idle" | null | undefined;
+type GuessStateInput = "correct" | "present" | "absent" | "tbd" | "empty" | "idle" | "green" | "yellow" | "gray" | null | undefined;
 type GuessState = "correct" | "present" | "absent" | "idle";
 
 type PlayerPillProps = {
@@ -47,6 +48,10 @@ export default function PlayerPill({
         const state = row?.[idx];
         if (state === "correct" || state === "present" || state === "absent") {
           return state as GuessState;
+        }
+        if (state === "green" || state === "yellow" || state === "gray") {
+          const normalized = normalizeGuessStates([state]);
+          return normalized[0] as GuessState;
         }
         return "idle" as GuessState;
       });

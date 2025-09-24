@@ -4,6 +4,7 @@ import ShareRoomModalCompat from "@/components/ShareRoomModalCompat";
 import VictoryModal from "@/components/VictoryModal";
 import WordleBoard from "@/components/WordleBoard";
 import { getSocket } from "@/lib/socket";
+import { normalizeGuessPatterns, normalizeGuessStates } from "@/utils/normalizeGuess";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, LayoutChangeEvent, Text, View } from "react-native";
@@ -326,7 +327,8 @@ export default function DuelGameStart() {
             gridCols={3}
             onPress={() => setViewMode("player")}
             active={viewMode === "player"}
-            showProgressGrid={false}
+            showProgressGrid={true}
+            guessPatterns={me?.guesses?.map(g => g.pattern || [])}
           />
           <PlayerPill
             name={opponent?.name || "Opponent"}
@@ -340,6 +342,7 @@ export default function DuelGameStart() {
             gridCols={5}
             onPress={() => setViewMode("opponent")}
             active={viewMode === "opponent"}
+            guessPatterns={opponent?.guesses?.map(g => g.pattern || [])}
           />
         </View>
 
@@ -541,7 +544,10 @@ function SecretEntryRow({ value, ready, locked, error }: SecretEntryProps) {
 
 function buildBoard(player?: DuelPlayer, pendingGuess = "") {
   const guesses = player?.guesses ?? [];
-  const rows = guesses.map((g) => ({ letters: g.guess || "", states: g.pattern }));
+  const rows = guesses.map((g) => ({ 
+    letters: g.guess || "", 
+    states: g.pattern ? normalizeGuessPatterns(g.pattern) : undefined 
+  }));
   if (pendingGuess && guesses.length < MAX_GUESSES) {
     rows.push({
       letters: pendingGuess.padEnd(WORD_LENGTH, " "),
@@ -580,7 +586,7 @@ function deriveKeyboardStates(me?: DuelPlayer) {
   if (!me?.guesses?.length) return map;
   for (const g of me.guesses) {
     const letters = (g.guess || "").toUpperCase().split("");
-    const states = g.pattern || [];
+    const states = g.pattern ? normalizeGuessStates(g.pattern) : [];
     letters.forEach((ch, i) => {
       const s = states[i];
       if (!/[A-Z]/.test(ch)) return;

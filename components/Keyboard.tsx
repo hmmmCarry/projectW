@@ -18,37 +18,17 @@ type KeyDef = {
 
 const KEY_LAYOUT: KeyDef[][] = [
   [
-    { code: "Q" },
-    { code: "W" },
-    { code: "E" },
-    { code: "R" },
-    { code: "T" },
-    { code: "Y" },
-    { code: "U" },
-    { code: "I" },
-    { code: "O" },
-    { code: "P" },
+    { code: "Q" }, { code: "W" }, { code: "E" }, { code: "R" }, { code: "T" },
+    { code: "Y" }, { code: "U" }, { code: "I" }, { code: "O" }, { code: "P" },
   ],
   [
-    { code: "A" },
-    { code: "S" },
-    { code: "D" },
-    { code: "F" },
-    { code: "G" },
-    { code: "H" },
-    { code: "J" },
-    { code: "K" },
-    { code: "L" },
+    { code: "A" }, { code: "S" }, { code: "D" }, { code: "F" }, { code: "G" },
+    { code: "H" }, { code: "J" }, { code: "K" }, { code: "L" },
   ],
   [
     { code: "ENTER", flex: 1.4 },
-    { code: "Z" },
-    { code: "X" },
-    { code: "C" },
-    { code: "V" },
-    { code: "B" },
-    { code: "N" },
-    { code: "M" },
+    { code: "Z" }, { code: "X" }, { code: "C" }, { code: "V" },
+    { code: "B" }, { code: "N" }, { code: "M" },
     { code: "BACKSPACE", flex: 1.4 },
   ],
 ];
@@ -57,17 +37,15 @@ const KEY_LABEL: Record<string, string> = {
   ENTER: "ENTER",
   BACKSPACE: "DEL",
 };
-const COLORS = {
+
+const PALETTE = {
   light: {
-    boardBg: "#F4F6F9", // soft gray background
-    keyBg: "#e5e7eb", // default key
-    keyText: "#34495E", // charcoal
-    enterReady: "#00C2A8", // teal
-    enterDisabled: "#d1d5db", // gray
-    backspace: "#FF6B6B", // coral highlight
-    correct: "#99E66F", // lime
-    present: "#00C2A8", // teal
-    absent: "#34495E", // charcoal
+    boardBg: "#F4F6F9",
+    keyBg: "#e5e7eb",
+    keyText: "#34495E",
+    enterReady: "#00C2A8",
+    enterDisabled: "#d1d5db",
+    backspace: "#FF6B6B",
   },
   dark: {
     boardBg: "#000000",
@@ -76,39 +54,23 @@ const COLORS = {
     enterReady: "#00C2A8",
     enterDisabled: "#374151",
     backspace: "#FF6B6B",
-    correct: "#99E66F",
-    present: "#00C2A8",
-    absent: "#34495E",
   },
 };
 
-function getKeyBackground(
-  code: string,
-  enterStatus: EnterStatus,
-  mode: "light" | "dark"
-) {
-  const palette = COLORS[mode];
+function getKeyBackground(code: string, enterStatus: EnterStatus, mode: "light" | "dark") {
+  const palette = PALETTE[mode];
   if (code === "ENTER") {
     if (enterStatus === "ready") return palette.enterReady;
     if (enterStatus === "disabled") return palette.enterDisabled;
     return palette.keyBg;
   }
-  if (code === "BACKSPACE") {
-    return palette.backspace;
-  }
+  if (code === "BACKSPACE") return palette.backspace;
   return palette.keyBg;
 }
 
-function getKeyForeground(
-  code: string,
-  enterStatus: EnterStatus,
-  mode: "light" | "dark"
-) {
-  const palette = COLORS[mode];
-  if (code === "ENTER") {
-    if (enterStatus === "disabled") return "#6b7280";
-    return "#fff";
-  }
+function getKeyForeground(code: string, enterStatus: EnterStatus, mode: "light" | "dark") {
+  const palette = PALETTE[mode];
+  if (code === "ENTER") return enterStatus === "disabled" ? "#6b7280" : "#fff";
   if (code === "BACKSPACE") return "#fff";
   return palette.keyText;
 }
@@ -120,8 +82,7 @@ export default function GameKeyboard({
   letterStates,
 }: Props) {
   const theme = useTheme();
-  const mode = theme?.mode === "dark" ? "dark" : "light"; // ✅ fallback
-  const palette = COLORS[mode];
+  const { colors, wordle } = theme;
 
   const handlePress = (code: string) => {
     if (disabled) return;
@@ -135,7 +96,7 @@ export default function GameKeyboard({
         paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 20,
-        backgroundColor: palette.boardBg || "#fff", // ✅ safe fallback
+        backgroundColor: colors.surface,
       }}
     >
       {KEY_LAYOUT.map((row, rowIndex) => (
@@ -149,20 +110,33 @@ export default function GameKeyboard({
         >
           {row.map((key) => {
             const state = letterStates?.[key.code];
-            let background = getKeyBackground(key.code, enterStatus, mode);
-            let foreground = getKeyForeground(key.code, enterStatus, mode);
+            let background = colors.neutral;
+            let foreground = colors.text;
 
-            if (state && key.code !== "ENTER" && key.code !== "BACKSPACE") {
+            if (state) {
               if (state === "correct") {
-                background = palette.correct || "#4ade80";
+                background = wordle.correct;
                 foreground = "#fff";
               } else if (state === "present") {
-                background = palette.present || "#22d3ee";
+                background = wordle.present;
                 foreground = "#fff";
               } else if (state === "absent") {
-                background = palette.absent || "#334155";
+                background = wordle.absent;
                 foreground = "#fff";
               }
+            }
+
+            if (key.code === "ENTER") {
+              background =
+                enterStatus === "ready"
+                  ? colors.accent
+                  : enterStatus === "disabled"
+                  ? colors.neutral
+                  : colors.surfaceElevated;
+              foreground = colors.textOnAccent;
+            } else if (key.code === "BACKSPACE") {
+              background = "#FF6B6B"; // coral
+              foreground = "#fff";
             }
 
             return (
@@ -175,7 +149,7 @@ export default function GameKeyboard({
                   flex: key.flex ?? 1,
                   marginHorizontal: 4,
                   borderRadius: 12,
-                  backgroundColor: background || "#ccc", // ✅ no undefined
+                  backgroundColor: background,
                   minHeight: 54,
                   alignItems: "center",
                   justifyContent: "center",
@@ -185,7 +159,7 @@ export default function GameKeyboard({
               >
                 <Text
                   style={{
-                    color: foreground || "#000", // ✅ safe fallback
+                    color: foreground,
                     fontWeight: "700",
                     fontSize: 16,
                   }}

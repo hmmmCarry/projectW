@@ -133,6 +133,7 @@ export default function WordleBoard({
     });
   }, [guesses, rowCount, columnCount]);
 
+
   return (
     <View
       style={[
