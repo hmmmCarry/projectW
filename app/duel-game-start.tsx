@@ -311,7 +311,7 @@ export default function DuelGameStart() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
-      <NavHeader title="Duel" showBack roomId={roomId || undefined} />
+      <NavHeader title="Duel" showBack roomId={roomId || undefined} timer={formatTimer(remainingMs)} />
       <View className="flex-1 px-4 pt-2 pb-1">
         <View className="flex-row gap-3">
           <PlayerPill
@@ -382,6 +382,7 @@ export default function DuelGameStart() {
                 maxWidth={boardAreaSize.width || undefined}
                 maxHeight={boardAreaSize.height || undefined}
                 gap={6}
+                revealRowIndex={me?.guesses ? me.guesses.length - 1 : null}
               />
             </View>
             {rematchStatus ? (
@@ -419,6 +420,7 @@ export default function DuelGameStart() {
             onKeyPress={handleKeyPress}
             enterStatus={enterStatus}
             disabled={keyboardDisabled || secretSubmitting}
+            letterStates={deriveKeyboardStates(me)}
           />
         </View>
       ) : null}
@@ -571,4 +573,26 @@ function getAvatarToken(name?: string) {
   if (!name) return "?";
   const trimmed = name.trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
+}
+
+function deriveKeyboardStates(me?: DuelPlayer) {
+  const map: Record<string, "correct" | "present" | "absent"> = {};
+  if (!me?.guesses?.length) return map;
+  for (const g of me.guesses) {
+    const letters = (g.guess || "").toUpperCase().split("");
+    const states = g.pattern || [];
+    letters.forEach((ch, i) => {
+      const s = states[i];
+      if (!/[A-Z]/.test(ch)) return;
+      if (!s) return;
+      const prev = map[ch];
+      if (s === "correct") map[ch] = "correct"; // highest priority
+      else if (s === "present") {
+        if (prev !== "correct") map[ch] = "present";
+      } else if (s === "absent") {
+        if (!prev) map[ch] = "absent";
+      }
+    });
+  }
+  return map;
 }
