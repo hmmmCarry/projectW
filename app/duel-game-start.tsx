@@ -1,11 +1,12 @@
 ﻿import GameKeyboard from "@/components/Keyboard";
+import NavHeader from "@/components/NavHeader";
+import ShareRoomModalCompat from "@/components/ShareRoomModalCompat";
 import VictoryModal from "@/components/VictoryModal";
 import WordleBoard from "@/components/WordleBoard";
 import { getSocket } from "@/lib/socket";
-import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Pressable, Text, View } from "react-native";
+import { Animated, LayoutChangeEvent, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PlayerPill from "./player-pill";
 
@@ -48,6 +49,7 @@ type RematchAck = { ok?: boolean; error?: string; bothRequested?: boolean };
 type Params = {
   roomId?: string;
   name?: string;
+  host?: string; // "1" for host, "0" for joiner
 };
 
 type ViewMode = "player" | "opponent";
@@ -60,9 +62,10 @@ export default function DuelGameStart() {
   const router = useRouter();
   const socket = useMemo(() => getSocket(), []);
 
-  const { roomId: roomParam, name: nameParam } = useLocalSearchParams<Params>();
+  const { roomId: roomParam, name: nameParam, host: hostParam } = useLocalSearchParams<Params>();
   const roomId = typeof roomParam === "string" ? roomParam : "";
   const initialName = typeof nameParam === "string" ? nameParam : undefined;
+  const isHost = hostParam === "1";
 
   const [room, setRoom] = useState<DuelRoomState | null>(null);
   const [socketId, setSocketId] = useState<string | null>(socket.id ?? null);
@@ -76,6 +79,8 @@ export default function DuelGameStart() {
   const [rematchStatus, setRematchStatus] = useState<string | null>(null);
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("player");
+  const [showShare, setShowShare] = useState(false);
+  const hasShownShareRef = useRef(false);
 
   const revealKeyRef = useRef<string | null>(null);
   const boardAnim = useRef(new Animated.Value(0)).current;
@@ -83,7 +88,8 @@ export default function DuelGameStart() {
   const shakeTranslate = boardShake.interpolate({ inputRange: [-1, 1], outputRange: [-6, 6] });
   const [boardAreaSize, setBoardAreaSize] = useState({ width: 0, height: 0 });
 
-  const handleBoardLayout = useCallback(({ nativeEvent: { layout } }) => {
+  const handleBoardLayout = useCallback((e: LayoutChangeEvent) => {
+    const { layout } = e.nativeEvent;
     const { width, height } = layout;
     if (width <= 0 || height <= 0) return;
     setBoardAreaSize({ width, height });
@@ -123,6 +129,17 @@ export default function DuelGameStart() {
     }
   }, [room?.duelReveal, room?.started]);
 
+  // Auto-open share modal once for hosts, when room exists and before game start
+  useEffect(() => {
+    if (!isHost) return;
+    if (!roomId) return;
+    if (room?.started) return;
+    if (hasShownShareRef.current) return;
+    hasShownShareRef.current = true;
+    const id = setTimeout(() => setShowShare(true), 0);
+    return () => clearTimeout(id);
+  }, [isHost, roomId, room?.started]);
+
   useEffect(() => {
     if (room?.duelDeadline) {
       const update = () => setRemainingMs(Math.max(0, room.duelDeadline! - Date.now()));
@@ -146,7 +163,7 @@ export default function DuelGameStart() {
   const me = socketId ? room?.players?.[socketId] : undefined;
   const opponent = players.find((p) => p.id !== socketId);
 
-  const isEnteringSecret = !!me && !me.ready;
+  const isEnteringSecret = !room?.started && !(me?.ready);
   const secretReady = isEnteringSecret && secretInput.length === WORD_LENGTH;
   const canGuess = !!room?.started && !!me && !me.done;
   const myBoard = useMemo(() => buildBoard(me, guess), [me, guess]);
@@ -294,19 +311,8 @@ export default function DuelGameStart() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
-      <View className="flex-1 px-4 pt-3 pb-1">
-        <View className="flex-row items-center justify-between mb-4">
-          <Pressable onPress={handleBack} className="flex-row items-center">
-            <Ionicons name="chevron-back" size={24} color="black" />
-            <Text className="text-sm">Back</Text>
-          </Pressable>
-
-          <View className="items-end">
-            <Text className="text-xs text-neutral-500">Room</Text>
-            <Text className="text-base font-semibold tracking-[2px]">{roomId || "-----"}</Text>
-          </View>
-        </View>
-
+      <NavHeader title="Duel" showBack roomId={roomId || undefined} />
+      <View className="flex-1 px-4 pt-2 pb-1">
         <View className="flex-row gap-3">
           <PlayerPill
             name={me?.name || initialName || "You"}
@@ -405,7 +411,7 @@ export default function DuelGameStart() {
             </View>
           </Animated.View>
         </View>
-      </View>
+        </View>
 
       {viewMode === "player" ? (
         <View style={{ height: KEYBOARD_HEIGHT, justifyContent: "flex-end" }}>
@@ -426,6 +432,13 @@ export default function DuelGameStart() {
         winnerEmoji={winnerInfo?.emoji || "CUP"}
         isMeWinner={winnerInfo?.isMeWinner}
         correctWord={winnerInfo?.word || ""}
+      />
+
+      <ShareRoomModalCompat
+        visible={showShare}
+        onClose={() => setShowShare(false)}
+        roomId={roomId}
+        deepLink={`projectw://join/${roomId}`}
       />
     </SafeAreaView>
   );

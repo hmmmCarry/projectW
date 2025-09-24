@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -56,25 +57,25 @@ const KEY_LABEL: Record<string, string> = {
   BACKSPACE: "DEL",
 };
 
-function getKeyBackground(code: string, enterStatus: EnterStatus) {
+function getKeyBackground(code: string, enterStatus: EnterStatus, mode: "light" | "dark") {
   if (code === "ENTER") {
-    if (enterStatus === "ready") return "#4338ca";
-    if (enterStatus === "disabled") return "#d1d5db";
-    return "#111827";
+    if (enterStatus === "ready") return mode === "dark" ? "#6366f1" : "#4338ca";
+    if (enterStatus === "disabled") return mode === "dark" ? "#374151" : "#d1d5db";
+    return mode === "dark" ? "#111827" : "#111827";
   }
   if (code === "BACKSPACE") {
-    return "#4b5563";
+    return mode === "dark" ? "#374151" : "#4b5563";
   }
-  return "#e5e7eb";
+  return mode === "dark" ? "#1f2937" : "#e5e7eb";
 }
 
-function getKeyForeground(code: string, enterStatus: EnterStatus) {
+function getKeyForeground(code: string, enterStatus: EnterStatus, mode: "light" | "dark") {
   if (code === "ENTER") {
-    if (enterStatus === "disabled") return "#6b7280";
+    if (enterStatus === "disabled") return mode === "dark" ? "#6b7280" : "#6b7280";
     return "#fff";
   }
   if (code === "BACKSPACE") return "#fff";
-  return "#111827";
+  return mode === "dark" ? "#e5e7eb" : "#111827";
 }
 
 export default function GameKeyboard({
@@ -82,6 +83,7 @@ export default function GameKeyboard({
   enterStatus = "default",
   disabled = false,
 }: Props) {
+  const theme = useTheme();
   const handlePress = (code: string) => {
     if (disabled) return;
     if (code === "ENTER" && enterStatus === "disabled") return;
@@ -94,7 +96,7 @@ export default function GameKeyboard({
         paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 20,
-        backgroundColor: "#f4f4f5",
+        backgroundColor: theme.mode === "dark" ? "#111827" : "#f4f4f5",
       }}
     >
       {KEY_LAYOUT.map((row, rowIndex) => (
@@ -103,8 +105,8 @@ export default function GameKeyboard({
           style={{ flexDirection: "row", justifyContent: "center", marginBottom: rowIndex === KEY_LAYOUT.length - 1 ? 0 : 10 }}
         >
           {row.map((key) => {
-            const background = getKeyBackground(key.code, enterStatus);
-            const foreground = getKeyForeground(key.code, enterStatus);
+            const background = getKeyBackground(key.code, enterStatus, theme.mode);
+            const foreground = getKeyForeground(key.code, enterStatus, theme.mode);
             const isEnter = key.code === "ENTER";
             const isBackspace = key.code === "BACKSPACE";
             const flex = key.flex ?? 1;

@@ -1,3 +1,4 @@
+import NavHeader from "@/components/NavHeader";
 import { Entypo, Feather, Fontisto } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
@@ -7,13 +8,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function Create() {
   return (
     <SafeAreaView>
-      <View className="min-h-full bg-gray-100 mt-4 px-4">
-        <View className="flex flex-row items-center w-full px-4">
-          <View className="flex-row space-x-4 justify-end w-full">
-            <Fontisto name="person" size={24} color="black" />
-            <Feather name="sun" size={24} color="black" />
-          </View>
-        </View>
+      <NavHeader greetingName="Tipsy preacher" />
+      <View className="min-h-full bg-gray-100 px-4">
 
         <View className="space-x-3 justify-start px-4">
           <Text className="text-2xl font-bold">Create a game room</Text>

@@ -1,5 +1,5 @@
-﻿import React, { useMemo } from "react";
-import { useTheme } from "@/providers/ThemeProvider";
+﻿import { useTheme } from "@/providers/ThemeProvider";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View, ViewStyle, useWindowDimensions } from "react-native";
 
 type TileState = "empty" | "correct" | "present" | "absent" | "tbd";
@@ -45,7 +45,7 @@ const COLORS = {
     text: "#1a1a1b",
     boardBg: "#f5f5f5",
   },
-} as const;
+};
 
 export default function WordleBoard({
   guesses = [],
