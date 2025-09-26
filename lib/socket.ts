@@ -7,6 +7,7 @@ let socket: Socket | null = null;
 
 export function getSocket() {
   if (!socket) {
+    console.log("Creating new socket connection to:", SOCKET_URL);
     socket = io(SOCKET_URL, {
       autoConnect: true,
       transports: ["websocket"],
@@ -14,6 +15,18 @@ export function getSocket() {
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       withCredentials: false,
+    });
+    
+    socket.on("connect", () => {
+      console.log("Socket connected successfully, ID:", socket?.id);
+    });
+    
+    socket.on("disconnect", (reason) => {
+      console.log("Socket disconnected:", reason);
+    });
+    
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
     });
   }
   return socket;
@@ -27,3 +40,4 @@ export function disconnectSocket() {
 }
 
 export type { Socket };
+
