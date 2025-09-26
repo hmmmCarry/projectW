@@ -57,7 +57,6 @@ export default function BattlePlayerGameStart() {
   const [guess, setGuess] = useState("");
   const [guessError, setGuessError] = useState<string | null>(null);
   const [guessLoading, setGuessLoading] = useState(false);
-  const [hasNavigated, setHasNavigated] = useState(false);
 
   const boardShake = useRef(new Animated.Value(0)).current;
   const shakeTranslate = boardShake.interpolate({ inputRange: [-1, 1], outputRange: [-6, 6] });
@@ -94,14 +93,12 @@ export default function BattlePlayerGameStart() {
 
   // Join room when we have both roomId and socketId
   useEffect(() => {
-    if (roomId && socketId && socket.connected && !hasNavigated) {
+    if (roomId && socketId && socket.connected) {
       console.log("Attempting to join room:", { roomId, socketId, playerName });
       
       // Check if we're already in the room
       if (room?.players?.[socketId]) {
-        console.log("Already in room, navigating to waiting screen");
-        setHasNavigated(true);
-        router.push(`/battle-waiting?roomId=${roomId}`);
+        console.log("Already in room, staying on current screen");
         return;
       }
       
@@ -109,7 +106,6 @@ export default function BattlePlayerGameStart() {
         console.log("Join room response:", res);
         if (res?.ok) {
           console.log("Successfully joined room, navigating to waiting screen");
-          setHasNavigated(true);
           router.push(`/battle-waiting?roomId=${roomId}`);
         } else {
           console.error("Failed to join room:", res?.error);
@@ -117,7 +113,7 @@ export default function BattlePlayerGameStart() {
         }
       });
     }
-  }, [roomId, socketId, playerName, room?.players, socket, router, hasNavigated]);
+  }, [roomId, socketId, playerName, room?.players, socket, router]);
 
   const players = useMemo(() => Object.values(room?.players ?? {}), [room?.players]);
   const me = socketId ? room?.players?.[socketId] : undefined;

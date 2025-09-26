@@ -68,6 +68,19 @@ export default function BattleWaiting() {
     };
   }, [socket, socketId, roomId, router]);
 
+  // Ensure we're in the room when we have socketId and roomId
+  useEffect(() => {
+    if (roomId && socketId && socket.connected && room && !room.players[socketId]) {
+      console.log("Not in room, attempting to join:", { roomId, socketId });
+      socket.emit("joinRoom", { name: "Player", roomId }, (res?: { ok?: boolean; error?: string }) => {
+        console.log("Join room response in waiting screen:", res);
+        if (!res?.ok) {
+          console.error("Failed to join room in waiting screen:", res?.error);
+        }
+      });
+    }
+  }, [roomId, socketId, room, socket]);
+
   const allPlayers = useMemo(() => Object.values(room?.players ?? {}), [room?.players]);
   const players = useMemo(() => allPlayers.filter(p => p.id !== room?.hostId), [allPlayers, room?.hostId]);
   const me = socketId ? room?.players?.[socketId] : undefined;
