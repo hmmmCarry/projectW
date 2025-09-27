@@ -1,12 +1,12 @@
 ﻿import GameKeyboard from "@/components/Keyboard";
 import WordleBoard from "@/components/WordleBoard";
-import GameResults from "./battle-game-results";
 import { getSocket } from "@/lib/socket";
 import { normalizeGuessPatterns, normalizeGuessStates } from "@/utils/normalizeGuess";
 import { useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import GameResults from "./battle-game-results";
 import BattleProgressStrip from "./battle-opponent-strip";
 
 const MAX_GUESSES = 6;
@@ -49,7 +49,6 @@ type GuessAck = { ok?: boolean; error?: string; pattern?: GuessPattern[] };
 type SetWordAck = { ok?: boolean; error?: string };
 type StartBattleAck = { ok?: boolean; error?: string };
 type ResetAck = { ok?: boolean; error?: string };
-
 type Params = { roomId?: string; name?: string };
 
 export default function BattlePlayerGameStart() {
