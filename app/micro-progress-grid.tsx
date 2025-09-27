@@ -1,4 +1,4 @@
-﻿import { useTheme } from "@/providers/ThemeProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 import { normalizeGuessStates } from "@/utils/normalizeGuess";
 import React from "react";
 import { View } from "react-native";
@@ -7,16 +7,14 @@ type CellState = "correct" | "present" | "absent" | "idle" | "filled";
 type CellStateInput = CellState | "green" | "yellow" | "gray";
 
 type Props = {
-  rows?: number;          // default 4
-  cols?: number;          // default 5
-  /** cells filled from top-left across, then down; e.g. guesses*5 */
-  filled?: number;        // 0..rows*cols
-  size?: number;          // px per square
-  gap?: number;           // px gap between squares
-  radius?: number;        // corner radius for each square
-  /** light/dark neutral greys only (no brand yet) */
+  rows?: number;
+  cols?: number;
+  filled?: number;
+  size?: number;
+  gap?: number;
+  radius?: number;
   tone?: "light" | "dark";
-  patterns?: CellStateInput[][]; // optional explicit grid states
+  patterns?: CellStateInput[][];
 };
 
 function MicroProgressGrid({
@@ -30,7 +28,6 @@ function MicroProgressGrid({
   patterns,
 }: Props) {
   const theme = useTheme();
-  const resolvedTone = tone ?? (theme.mode === "dark" ? "dark" : "light");
   const total = rows * cols;
   const hasPatterns = Array.isArray(patterns) && patterns.length > 0;
 
@@ -50,21 +47,20 @@ function MicroProgressGrid({
       )
     : undefined;
 
-  // Debug logging
-  if (hasPatterns) {
-    console.log("MicroProgressGrid patterns:", patterns);
-    console.log("MicroProgressGrid sanitizedPatterns:", sanitizedPatterns);
-  }
+  const makeIdleRow = () => Array.from({ length: cols }, () => "idle" as CellState);
 
-  const activeRows = sanitizedPatterns ? sanitizedPatterns.slice(-rows) : undefined;
-  const idleRow = Array.from({ length: cols }, () => "idle" as CellState);
-  const paddedRows = activeRows
-    ? [...Array.from({ length: rows - activeRows.length }, () => idleRow), ...activeRows]
-    : Array.from({ length: rows }, () => idleRow);
+  const cellStates: CellState[] = (() => {
+    if (sanitizedPatterns && sanitizedPatterns.length > 0) {
+      const sanitizedCount = sanitizedPatterns.length;
+      const startIndex = sanitizedCount > rows ? sanitizedCount - rows : 0;
+      const visibleRows = sanitizedPatterns.slice(startIndex, sanitizedCount);
+      const paddedRows = [...visibleRows, ...Array.from({ length: rows - visibleRows.length }, makeIdleRow)];
+      return paddedRows.flat();
+    }
 
-  const cellStates: CellState[] = sanitizedPatterns
-    ? paddedRows.flat()
-    : Array.from({ length: total }, (_, i) => (i < Math.max(0, Math.min(total, filled)) ? "filled" : "idle"));
+    const clampedFilled = Math.max(0, Math.min(total, filled));
+    return Array.from({ length: total }, (_, i) => (i < clampedFilled ? "filled" : "idle"));
+  })();
 
   const border = theme.colors.border;
   const palette = {
