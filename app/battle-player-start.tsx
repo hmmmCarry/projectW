@@ -57,6 +57,8 @@ export default function BattlePlayerGameStart() {
   const [guess, setGuess] = useState("");
   const [guessError, setGuessError] = useState<string | null>(null);
   const [guessLoading, setGuessLoading] = useState(false);
+  const [spectateTargetId, setSpectateTargetId] = useState<string | null>(null);
+
 
   const boardShake = useRef(new Animated.Value(0)).current;
   const shakeTranslate = boardShake.interpolate({ inputRange: [-1, 1], outputRange: [-6, 6] });
@@ -118,10 +120,33 @@ export default function BattlePlayerGameStart() {
   const players = useMemo(() => Object.values(room?.players ?? {}), [room?.players]);
   const me = socketId ? room?.players?.[socketId] : undefined;
 
-  const canGuess = !!room?.battle?.started && !!me && !me.done && socketId !== room?.hostId;
-  const myBoard = useMemo(() => buildBoard(me, guess), [me, guess]);
+  const isHost = socketId != null && room?.hostId === socketId;
+
+  const canGuess = !!room?.battle?.started && !!me && !me.done && !isHost;
+
+  const viewingPlayer = useMemo(() => {
+    if (isHost) {
+      const pool = players.filter((p) => p.id !== room?.hostId && p.id !== socketId);
+      if (spectateTargetId) {
+        const selected = pool.find((p) => p.id === spectateTargetId);
+        if (selected) {
+          return selected;
+        }
+      }
+      return pool.length > 0 ? pool[0] : undefined;
+    }
+    return me;
+  }, [isHost, me, players, room?.hostId, socketId, spectateTargetId]);
+
+  const pendingGuessForBoard = !isHost && viewingPlayer?.id === me?.id ? guess : "";
+  const activeBoard = useMemo(() => buildBoard(viewingPlayer, pendingGuessForBoard), [viewingPlayer, pendingGuessForBoard]);
 
   const stageMessage = deriveStageMessage({ room, players, me, socketId });
+
+  const handleSpectateSelect = useCallback((playerId: string) => {
+    if (!isHost) return;
+    setSpectateTargetId((current) => (current === playerId ? current : playerId));
+  }, [isHost]);
 
   const triggerBoardShake = () => {
     boardShake.setValue(0);
@@ -184,13 +209,31 @@ export default function BattlePlayerGameStart() {
       .map((p) => ({
         id: p.id,
         name: p.name || "—",
-        avatarEmoji: undefined,
+        avatarEmoji: (((p.name || "?").trim().charAt(0) || "?")).toUpperCase(),
         wins: p.wins ?? 0,
         streak: p.streak ?? 0,
         guesses: p.guesses?.length ?? 0,
         online: !p.disconnected,
       }));
   }, [players, socketId]);
+
+  useEffect(() => {
+    if (!isHost) {
+      if (spectateTargetId !== null) {
+        setSpectateTargetId(null);
+      }
+      return;
+    }
+
+    const nonHostPlayers = players.filter((p) => p.id !== room?.hostId && p.id !== socketId);
+    const currentValid = spectateTargetId && nonHostPlayers.some((p) => p.id === spectateTargetId);
+    if (!currentValid) {
+      const nextId = nonHostPlayers.length > 0 ? nonHostPlayers[0].id : null;
+      if (nextId !== spectateTargetId) {
+        setSpectateTargetId(nextId);
+      }
+    }
+  }, [isHost, players, room?.hostId, socketId, spectateTargetId]);
 
   // Show waiting screen if game hasn't started
   if (room && !room.battle.started) {
@@ -367,10 +410,20 @@ export default function BattlePlayerGameStart() {
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       <View className="flex-1 px-4 pt-2 pb-1">
-        <BattleProgressStrip players={stripPlayers} style={{ marginTop: 6 }} />
+        <BattleProgressStrip
+          players={stripPlayers}
+          style={{ marginTop: 6 }}
+          selectedId={isHost ? spectateTargetId : undefined}
+          onSelect={isHost ? handleSpectateSelect : undefined}
+        />
 
         <View className="w-full items-center mt-3">
           <Text className="text-xs text-neutral-500">{stageMessage}</Text>
+          {isHost ? (
+            <Text className="text-xs text-neutral-600 mt-1">
+              {viewingPlayer ? `Viewing ${viewingPlayer.name || "player"}'s board` : "No players to spectate yet"}
+            </Text>
+          ) : null}
         </View>
 
         <View style={{ flex: 1, marginTop: 8 }} onLayout={handleBoardLayout}>
@@ -379,25 +432,33 @@ export default function BattlePlayerGameStart() {
           >
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 12 }}>
               <WordleBoard
-                guesses={myBoard}
+                guesses={activeBoard}
                 maxWidth={boardAreaSize.width || undefined}
                 maxHeight={boardAreaSize.height || undefined}
                 gap={6}
-                revealRowIndex={me?.guesses ? me.guesses.length - 1 : null}
+                revealRowIndex={viewingPlayer?.guesses ? viewingPlayer.guesses.length - 1 : null}
               />
             </View>
           </Animated.View>
         </View>
         </View>
 
-      <View style={{ height: KEYBOARD_HEIGHT, justifyContent: "flex-end" }}>
-        <GameKeyboard
-          onKeyPress={handleKeyPress}
-          enterStatus={enterStatus}
-          disabled={!canGuess || guessLoading}
-          letterStates={deriveKeyboardStates(me)}
-        />
-      </View>
+      {!isHost ? (
+        <View style={{ height: KEYBOARD_HEIGHT, justifyContent: "flex-end" }}>
+          <GameKeyboard
+            onKeyPress={handleKeyPress}
+            enterStatus={enterStatus}
+            disabled={!canGuess || guessLoading}
+            letterStates={deriveKeyboardStates(me)}
+          />
+        </View>
+      ) : (
+        <View style={{ height: KEYBOARD_HEIGHT, alignItems: "center", justifyContent: "center" }}>
+          <Text className="text-xs text-neutral-500">
+            {viewingPlayer ? `Spectating ${viewingPlayer.name || "player"}` : "Waiting for players"}
+          </Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -411,7 +472,15 @@ function buildBoard(player?: BattlePlayer, pendingGuess = "") {
   if (pendingGuess && guesses.length < MAX_GUESSES) {
     rows.push({
       letters: pendingGuess.padEnd(WORD_LENGTH, " "),
-      states: Array.from({ length: WORD_LENGTH }, (_, i) => (i < pendingGuess.length ? ("tbd" as GuessPattern) : ("empty" as GuessPattern))),
+      states: Array.from({ length: WORD_LENGTH }, (_, i) =>
+        i < pendingGuess.length ? ("tbd" as GuessPattern) : ("empty" as GuessPattern)
+      ),
+    });
+  }
+  while (rows.length < MAX_GUESSES) {
+    rows.push({
+      letters: "".padEnd(WORD_LENGTH, " "),
+      states: Array.from({ length: WORD_LENGTH }, () => "empty" as GuessPattern),
     });
   }
   return rows;

@@ -6,9 +6,11 @@ type Props = {
   players: BattleChipPlayer[];
   style?: ViewStyle;
   tone?: "light" | "dark";
+  selectedId?: string | null;
+  onSelect?: (playerId: string) => void;
 };
 
-export default function BattleProgressStrip({ players, style, tone = "light" }: Props) {
+export default function BattleProgressStrip({ players, style, tone = "light", selectedId, onSelect }: Props) {
   return (
     <View style={[{ paddingHorizontal: 8 }, style]}>
       <FlatList
@@ -19,9 +21,13 @@ export default function BattleProgressStrip({ players, style, tone = "light" }: 
         contentContainerStyle={{ paddingHorizontal: 4 }}
         ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
         renderItem={({ item }) => (
-          <BattleOpponentChip player={item} tone={tone} />
+          <BattleOpponentChip
+            player={item}
+            tone={tone}
+            active={selectedId === item.id}
+            onPress={onSelect ? () => onSelect(item.id) : undefined}
+          />
         )}
-        // pills auto-size themselves; no extra press handlers here (visual only)
       />
     </View>
   );

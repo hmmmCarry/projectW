@@ -255,25 +255,27 @@ function PodiumSlot({
   baseHeight: number;
   crown?: boolean;
 }) {
-  const medal = place === "1" ? "🥇" : place === "2" ? "🥈" : "🥉";
+  const medalLabel = place === "1" ? "#1" : place === "2" ? "#2" : "#3";
+  const accent = place === "1" ? "#f59e0b" : place === "2" ? "#94a3b8" : "#f97316";
+  const stepsLabel = steps != null ? `${steps} ${steps === 1 ? "step" : "steps"}` : "-";
   return (
     <View className="items-center">
       <View className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2 items-center mb-1.5">
         {crown ? (
-          <Text className="text-xl mb-0.5">👑</Text>
+          <Ionicons name="crown" size={18} color="#fbbf24" style={{ marginBottom: 4 }} />
         ) : (
-          <View style={{ height: 0, marginBottom: 2 }} />
+          <View style={{ height: 18, marginBottom: 4 }} />
         )}
-        <Text className="text-base mb-0.5">{medal}</Text>
+        <Text className="text-base font-semibold" style={{ color: accent }}>
+          {medalLabel}
+        </Text>
         <Text
           className="text-xs font-semibold text-neutral-800 dark:text-neutral-100 max-w-[120px]"
           numberOfLines={1}
         >
           {name}
         </Text>
-        <Text className="text-[11px] text-neutral-500 mt-0.5">
-          {steps ? steps : "—"}
-        </Text>
+        <Text className="text-[11px] text-neutral-500 mt-0.5">{stepsLabel}</Text>
       </View>
       <View
         className="w-24 rounded-t-xl border-t-2 border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800"
@@ -296,3 +298,4 @@ function Chip({ value, tone }: { value: string; tone: "green" | "indigo" }) {
     </View>
   );
 }
+

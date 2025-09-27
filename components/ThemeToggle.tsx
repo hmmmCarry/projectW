@@ -50,7 +50,6 @@ export const ThemeToggle = () => {
       <Ionicons name="contrast-outline" size={20} color={theme.colors.textMuted} />
       <Ionicons name="moon-outline" size={20} color={theme.colors.text} />
       <View
-        pointerEvents="none"
         style={{
           position: "absolute",
           top: 6,
@@ -72,3 +71,4 @@ export const ThemeToggle = () => {
     </Pressable>
   );
 };
+

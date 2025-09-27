@@ -1,56 +1,81 @@
-import React from "react";
-import { Image, Text, View, ViewStyle } from "react-native";
+import React, { useMemo } from "react";
+import { Image, Pressable, Text, View, ViewStyle } from "react-native";
 import MicroProgressGrid from "./micro-progress-grid";
 
 export type BattleChipPlayer = {
   id: string;
   name: string;
-  avatarEmoji?: string;          // optional emoji
-  avatarUri?: string;            // optional image
+  avatarEmoji?: string;
+  avatarUri?: string;
   wins?: number;
   streak?: number;
-  guesses?: number;              // number of submitted guesses (0..6)
+  guesses?: number;
   online?: boolean;
 };
 
 type Props = {
   player: BattleChipPlayer;
   style?: ViewStyle;
-  /** show neutral light card; no brand color yet */
   tone?: "light" | "dark";
+  active?: boolean;
+  onPress?: () => void;
 };
 
-export default function BattleOpponentChip({ player, style, tone = "light" }: Props) {
-  const wins   = player.wins ?? 0;
-  const streak = player.streak ?? 0;
+export default function BattleOpponentChip({ player, style, tone = "light", active = false, onPress }: Props) {
   const gCount = Math.max(0, Math.min(6, player.guesses ?? 0));
-
-  // each guess = 5 tiles worth of “progress” on the micro grid
   const filled = gCount * 5;
 
+  const colors = useMemo(() => {
+    const baseBg = tone === "dark" ? "rgba(255,255,255,0.08)" : "#F6F6FE";
+    const baseBorder = tone === "dark" ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.08)";
+    const baseText = tone === "dark" ? "#E2E8F0" : "#111827";
+    const baseMeta = tone === "dark" ? "#CBD5F5" : "#6B7280";
+
+    if (!active) {
+      return {
+        background: baseBg,
+        border: baseBorder,
+        text: baseText,
+        meta: baseMeta,
+        badgeBorder: baseBg,
+      };
+    }
+
+    return {
+      background: tone === "dark" ? "rgba(99,102,241,0.28)" : "#E0E7FF",
+      border: "#6366F1",
+      text: tone === "dark" ? "#EEF2FF" : "#312E81",
+      meta: tone === "dark" ? "#C7D2FE" : "#4C1D95",
+      badgeBorder: tone === "dark" ? "rgba(99,102,241,0.28)" : "#E0E7FF",
+    };
+  }, [active, tone]);
+
+  const Wrapper = onPress ? Pressable : View;
+
   return (
-    <View
+    <Wrapper
       className="flex-row items-center rounded-3xl"
       style={[
         {
-          backgroundColor: "#F6F6FE",                  // soft plate
+          backgroundColor: colors.background,
           paddingHorizontal: 12,
           paddingVertical: 10,
           borderWidth: 1,
-          borderColor: "rgba(0,0,0,0.08)",
+          borderColor: colors.border,
         },
         style,
       ]}
+      onPress={onPress}
+      disabled={!onPress}
     >
-      {/* Avatar / initials */}
       <View
         style={{
           width: 40,
           height: 40,
           borderRadius: 999,
-          backgroundColor: "white",
+          backgroundColor: active ? "rgba(255,255,255,0.28)" : "white",
           borderWidth: 1,
-          borderColor: "rgba(0,0,0,0.08)",
+          borderColor: active ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.08)",
           alignItems: "center",
           justifyContent: "center",
           marginRight: 10,
@@ -63,10 +88,11 @@ export default function BattleOpponentChip({ player, style, tone = "light" }: Pr
             resizeMode="cover"
           />
         ) : (
-          <Text style={{ fontSize: 18 }}>{player.avatarEmoji ?? "🧩"}</Text>
+          <Text style={{ fontSize: 18, color: colors.text }}>
+            {(player.avatarEmoji || "?").slice(0, 2)}
+          </Text>
         )}
 
-        {/* online dot */}
         <View
           style={{
             position: "absolute",
@@ -77,12 +103,27 @@ export default function BattleOpponentChip({ player, style, tone = "light" }: Pr
             borderRadius: 6,
             backgroundColor: player.online ? "#34D399" : "rgba(0,0,0,0.15)",
             borderWidth: 2,
-            borderColor: "#F6F6FE",
+            borderColor: colors.badgeBorder,
           }}
         />
       </View>
 
-      {/* Micro progress grid – fixed size, right side */}
+      <View style={{ flex: 1, marginRight: 10 }}>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "600",
+            color: colors.text,
+          }}
+          numberOfLines={1}
+        >
+          {player.name}
+        </Text>
+        <Text style={{ fontSize: 11, fontWeight: "600", color: colors.meta }}>
+          W:{player.wins ?? 0}  STREAK:{player.streak ?? 0}
+        </Text>
+      </View>
+
       <MicroProgressGrid
         rows={4}
         cols={5}
@@ -90,8 +131,8 @@ export default function BattleOpponentChip({ player, style, tone = "light" }: Pr
         gap={2}
         radius={4}
         filled={filled}
-        tone={tone}
+        tone={active ? "dark" : tone}
       />
-    </View>
+    </Wrapper>
   );
 }

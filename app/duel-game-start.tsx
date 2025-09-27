@@ -372,20 +372,19 @@ export default function DuelGameStart() {
 
         <View style={{ flex: 1, marginTop: 8, position: "relative" }} onLayout={handleBoardLayout}>
           <Animated.View
-            style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, flex: 1 }, playerBoardStyle]}
-            pointerEvents={viewMode === "player" ? "auto" : "none"}
+            style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, flex: 1, pointerEvents: viewMode === "player" ? "auto" : "none" }, playerBoardStyle]}
           >
             <View style={{ alignItems: "center", marginBottom: 12 }}>
               <Text className="text-sm text-neutral-600 mb-2 text-center">{stageMessage}</Text>
               <Text className="text-2xl font-semibold text-neutral-800">{formatTimer(remainingMs)}</Text>
             </View>
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 12 }}>
+            <View style={{ flex: 1, justifyContent: "flex-end", alignItems: "center", paddingBottom: 28, paddingHorizontal: 8 }}>
               <WordleBoard
                 guesses={myBoard}
                 maxWidth={boardAreaSize.width || undefined}
                 maxHeight={boardAreaSize.height || undefined}
                 gap={6}
-                revealRowIndex={me?.guesses ? me.guesses.length - 1 : null}
+                revealRowIndex={me?.guesses?.length ? me.guesses.length - 1 : null}
               />
             </View>
             {rematchStatus ? (
@@ -394,8 +393,7 @@ export default function DuelGameStart() {
           </Animated.View>
 
           <Animated.View
-            style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, flex: 1 }, opponentBoardStyle]}
-            pointerEvents={viewMode === "opponent" ? "auto" : "none"}
+            style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, flex: 1, pointerEvents: viewMode === "opponent" ? "auto" : "none" }, opponentBoardStyle]}
           >
             <View style={{ alignItems: "center", marginBottom: 16, marginTop: 4 }}>
               <Text className="text-sm text-neutral-600 mb-2 text-center">
@@ -405,7 +403,7 @@ export default function DuelGameStart() {
                 Tap your pill to return to your guesses.
               </Text>
             </View>
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 12 }}>
+            <View style={{ flex: 1, justifyContent: "flex-end", alignItems: "center", paddingBottom: 28, paddingHorizontal: 8 }}>
               <WordleBoard
                 guesses={oppBoard}
                 maxWidth={boardAreaSize.width || undefined}
@@ -552,6 +550,12 @@ function buildBoard(player?: DuelPlayer, pendingGuess = "") {
     rows.push({
       letters: pendingGuess.padEnd(WORD_LENGTH, " "),
       states: Array.from({ length: WORD_LENGTH }, (_, i) => (i < pendingGuess.length ? ("tbd" as GuessPattern) : ("empty" as GuessPattern))),
+    });
+  }
+  while (rows.length < MAX_GUESSES) {
+    rows.push({
+      letters: "".padEnd(WORD_LENGTH, " "),
+      states: Array.from({ length: WORD_LENGTH }, () => "empty" as GuessPattern),
     });
   }
   return rows;
