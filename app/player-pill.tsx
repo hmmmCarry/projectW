@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { Image, Pressable, Text, View, ViewStyle } from "react-native";
 import MicroProgressGrid from "./micro-progress-grid";
 
-type GuessStateInput =
+export type PlayerPillGuessStateInput =
   | "correct"
   | "present"
   | "absent"
@@ -32,7 +32,7 @@ type PlayerPillProps = {
   onPress?: () => void;
   active?: boolean;
   showProgressGrid?: boolean;
-  guessPatterns?: GuessStateInput[][];
+  guessPatterns?: PlayerPillGuessStateInput[][];
   tone?: "light" | "dark";
   style?: ViewStyle;
 };
@@ -124,7 +124,7 @@ export default function PlayerPill({
   const Wrapper = onPress ? Pressable : View;
   const avatarLabel = avatar || (name ? name.trim().charAt(0).toUpperCase() : "?");
   const gridProps = sanitizedPatterns ? { patterns: sanitizedPatterns } : { filled: fallbackFilled };
-  const gridTone = active ? "dark" : tone;
+  const gridTone = tone ?? (active ? "dark" : undefined);
 
   return (
     <Wrapper

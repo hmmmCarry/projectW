@@ -1,4 +1,4 @@
-﻿import GameKeyboard from "@/components/Keyboard";
+import GameKeyboard from "@/components/Keyboard";
 import WordleBoard from "@/components/WordleBoard";
 import { getSocket } from "@/lib/socket";
 import { normalizeGuessPatterns, normalizeGuessStates } from "@/utils/normalizeGuess";
@@ -49,6 +49,7 @@ type GuessAck = { ok?: boolean; error?: string; pattern?: GuessPattern[] };
 type SetWordAck = { ok?: boolean; error?: string };
 type StartBattleAck = { ok?: boolean; error?: string };
 type ResetAck = { ok?: boolean; error?: string };
+type SyncResponse = { ok?: boolean; error?: string; state?: BattleRoomState };
 type Params = { roomId?: string; name?: string };
 
 export default function BattlePlayerGameStart() {
@@ -74,21 +75,44 @@ export default function BattlePlayerGameStart() {
   const shakeTranslate = boardShake.interpolate({ inputRange: [-1, 1], outputRange: [-6, 6] });
 
   useEffect(() => {
+    const hydrate = () => {
+      if (!roomId) return;
+      socket.emit("syncRoom", { roomId }, (res?: SyncResponse) => {
+        if (res?.ok && res.state) {
+          setRoom(res.state);
+        } else if (res?.error) {
+          console.warn("[battle-start] syncRoom failed", res.error);
+        }
+      });
+    };
+
     if (!socket.connected) {
       socket.connect();
     }
 
-    const handleConnect = () => setSocketId(socket.id ?? null);
+    const handleConnect = () => {
+      setSocketId(socket.id ?? null);
+      hydrate();
+    };
+
+    const handleDisconnect = () => setSocketId(null);
     const handleRoomState = (state: BattleRoomState) => setRoom(state);
 
     socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
     socket.on("roomState", handleRoomState);
+
+    if (socket.connected) {
+      setSocketId(socket.id ?? null);
+      hydrate();
+    }
 
     return () => {
       socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
       socket.off("roomState", handleRoomState);
     };
-  }, [socket]);
+  }, [socket, roomId]);
 
   useEffect(() => {
     if (!roomId || !socketId || !socket.connected) return;
@@ -167,11 +191,13 @@ export default function BattlePlayerGameStart() {
         wins: p.wins ?? 0,
         streak: p.streak ?? 0,
         guesses: p.guesses?.length ?? 0,
+        guessPatterns: p.guesses?.map((g) =>
+          Array.from({ length: WORD_LENGTH }, (_, idx) => g.pattern?.[idx] ?? "idle")
+        ),
         online: !p.disconnected,
       })),
     [spectateTargets],
   );
-
   const playerCount = spectateTargets.length;
   const stageMessage = deriveStageMessage({
     room,
@@ -706,3 +732,4 @@ function getAvatarToken(name?: string) {
   const trimmed = name.trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
 }
+

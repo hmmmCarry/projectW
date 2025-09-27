@@ -36,11 +36,8 @@ type RoomState = {
 };
 
 type Params = { roomId?: string };
-
-type GuessRow = {
-  letters: string;
-  states?: GuessPattern[];
-};
+type GuessRow = { letters: string; states?: GuessPattern[] };
+type SyncResponse = { ok?: boolean; error?: string; state?: RoomState };
 
 export default function GameStart() {
   const socket = useMemo(() => getSocket(), []);
@@ -51,38 +48,63 @@ export default function GameStart() {
   const [socketId, setSocketId] = useState<string | null>(socket.id ?? null);
 
   useEffect(() => {
-    if (!socket.connected) socket.connect();
-    const onConnect = () => setSocketId(socket.id ?? null);
-    const onRoom = (state: RoomState) => setRoom(state);
+    const hydrate = () => {
+      if (!roomId) return;
+      socket.emit("syncRoom", { roomId }, (res?: SyncResponse) => {
+        if (res?.ok && res.state) {
+          setRoom(res.state);
+        } else if (res?.error) {
+          console.warn("[game-start] syncRoom failed", res.error);
+        }
+      });
+    };
 
-    socket.on("connect", onConnect);
-    socket.on("roomState", onRoom);
+    if (!socket.connected) socket.connect();
+
+    const handleConnect = () => {
+      setSocketId(socket.id ?? null);
+      hydrate();
+    };
+
+    const handleDisconnect = () => setSocketId(null);
+    const handleRoomState = (state: RoomState) => setRoom(state);
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("roomState", handleRoomState);
+
+    if (socket.connected) {
+      setSocketId(socket.id ?? null);
+      hydrate();
+    }
 
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("roomState", onRoom);
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("roomState", handleRoomState);
     };
-  }, [socket]);
+  }, [socket, roomId]);
 
   const allPlayers = useMemo(() => Object.values(room?.players ?? {}), [room?.players]);
-  const viewerList = useMemo(() => allPlayers.filter((p) => p.id !== room?.hostId), [allPlayers, room?.hostId]);
+  const viewerList = useMemo(
+    () => allPlayers.filter((player) => player.id !== room?.hostId),
+    [allPlayers, room?.hostId],
+  );
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const pagerRef = useRef<FlatList<Player>>(null);
+
+  useEffect(() => {
+    setActiveIndex((prev) => {
+      if (viewerList.length === 0) return 0;
+      return Math.min(prev, viewerList.length - 1);
+    });
+  }, [viewerList.length]);
 
   const handlePressPill = (index: number) => {
     setActiveIndex(index);
-    pagerRef.current?.scrollToIndex({ index, animated: true });
   };
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index?: number }> }) => {
-    if (viewableItems?.length > 0) {
-      const next = viewableItems[0].index ?? 0;
-      if (typeof next === "number") setActiveIndex(next);
-    }
-  }).current;
-
-  const viewConfigRef = useRef({ viewAreaCoveragePercentThreshold: 60 });
+  const selectedPlayer = viewerList[activeIndex] ?? viewerList[0] ?? null;
 
   const me = socketId ? room?.players?.[socketId] : undefined;
   const isHost = socketId != null && room?.hostId === socketId;
@@ -112,7 +134,7 @@ export default function GameStart() {
     }, 400);
 
     return () => clearTimeout(timeout);
-  }, [isHost, room?.battle?.started, me?.name, roomId, socketId]);
+  }, [isHost, room?.battle?.started, roomId, socketId, me?.name]);
 
   const renderPill = (player: Player, index: number) => (
     <PlayerPill
@@ -131,21 +153,6 @@ export default function GameStart() {
       showProgressGrid
       guessPatterns={player.guesses?.map((g) => g.pattern || [])}
     />
-  );
-
-  const renderBoard = ({ item }: { item: Player }) => (
-    <View style={{ width: "100%", paddingHorizontal: 16 }}>
-      <View style={{ alignItems: "center", marginTop: 10, marginBottom: 6 }}>
-        <Text className="text-sm text-neutral-600">{item.name || "Player"}</Text>
-      </View>
-      <View style={{ height: 460, justifyContent: "center", alignItems: "center" }}>
-        <WordleBoard
-          guesses={buildBoard(item)}
-          gap={6}
-          revealRowIndex={item.guesses ? item.guesses.length - 1 : null}
-        />
-      </View>
-    </View>
   );
 
   const headerMessage = useMemo(() => {
@@ -171,19 +178,26 @@ export default function GameStart() {
           renderItem={({ item, index }) => renderPill(item, index)}
         />
 
-        <FlatList
-          ref={pagerRef}
-          data={viewerList}
-          keyExtractor={(player) => player.id}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          renderItem={renderBoard}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewConfigRef.current}
-          decelerationRate="fast"
-          snapToAlignment="start"
-        />
+        <View style={{ width: "100%", paddingHorizontal: 16, marginTop: 16 }}>
+          {selectedPlayer ? (
+            <>
+              <View style={{ alignItems: "center", marginBottom: 10 }}>
+                <Text className="text-sm text-neutral-600">{selectedPlayer.name || "Player"}</Text>
+              </View>
+              <View style={{ height: 460, justifyContent: "center", alignItems: "center" }}>
+                <WordleBoard
+                  guesses={buildBoard(selectedPlayer)}
+                  gap={6}
+                  revealRowIndex={selectedPlayer.guesses ? selectedPlayer.guesses.length - 1 : null}
+                />
+              </View>
+            </>
+          ) : (
+            <View style={{ height: 200, alignItems: "center", justifyContent: "center" }}>
+              <Text className="text-sm text-neutral-500">No players to display yet.</Text>
+            </View>
+          )}
+        </View>
       </View>
     </SafeAreaView>
   );

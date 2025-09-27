@@ -263,6 +263,12 @@ function endBattleRound(room, winnerId = null) {
 
 // ---------- Socket handlers ----------
 io.on("connection", (socket) => {
+  socket.on("syncRoom", ({ roomId }, cb) => {
+    const room = rooms.get(roomId);
+    if (!room) return cb?.({ ok: false, error: "Room not found" });
+    socket.join(roomId);
+    cb?.({ ok: true, state: sanitizeRoom(room) });
+  });
   // DUEL: play again (reset room to pre-start state)
   socket.on("duelPlayAgain", ({ roomId }, cb) => {
     const room = rooms.get(roomId);

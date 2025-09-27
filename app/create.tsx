@@ -32,6 +32,7 @@ type ResumeAck = { ok?: boolean; error?: string };
 type RoomResponse = { roomId?: string; error?: string };
 type StartAck = { ok?: boolean; error?: string };
 type ResetAck = { ok?: boolean; error?: string };
+type SyncResponse = { ok?: boolean; error?: string; state?: RoomState };
 
 type SearchParams = {
   name?: string;
@@ -42,7 +43,8 @@ type SearchParams = {
 
 export default function Create() {
   const socket = useMemo(() => getSocket(), []);
-  const { name: nameParam, autoCreate, roomId: roomParam, hostId: hostParam } = useLocalSearchParams<SearchParams>();
+  const { name: nameParam, autoCreate, roomId: roomParam, hostId: hostParam } =
+    useLocalSearchParams<SearchParams>();
 
   const [name, setName] = useState(nameParam || "Host");
   const [word, setWord] = useState("");
@@ -53,37 +55,51 @@ export default function Create() {
   const resumeAttemptedRef = useRef(false);
 
   useEffect(() => {
+    const hydrate = () => {
+      if (!roomId) return;
+      socket.emit("syncRoom", { roomId }, (res?: SyncResponse) => {
+        if (res?.ok && res.state) {
+          setRoom(res.state);
+          if (res.state.id) {
+            setRoomId((prev) => (res.state.id !== prev ? res.state.id : prev));
+          }
+        } else if (res?.error) {
+          console.warn("[create] syncRoom failed", res.error);
+        }
+      });
+    };
+
     if (!socket.connected) socket.connect();
 
-    const handleConnect = () => setSocketId(socket.id ?? null);
-    const handleDisconnect = () => setSocketId(socket.id ?? null);
+    const handleConnect = () => {
+      setSocketId(socket.id ?? null);
+      hydrate();
+    };
+
+    const handleDisconnect = () => setSocketId(null);
+
+    const handleRoomState = (state: RoomState) => {
+      setRoom(state);
+      if (state.id) {
+        setRoomId((prev) => (state.id !== prev ? state.id : prev));
+      }
+    };
 
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
+    socket.on("roomState", handleRoomState);
+
+    if (socket.connected) {
+      setSocketId(socket.id ?? null);
+      hydrate();
+    }
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
-    };
-  }, [socket]);
-
-  useEffect(() => {
-    const handleRoomState = (state: RoomState) => {
-      setRoom(state);
-      setRoomId(state.id);
-    };
-
-    socket.on("roomState", handleRoomState);
-    return () => {
       socket.off("roomState", handleRoomState);
     };
-  }, [socket]);
-
-  useEffect(() => {
-    if (typeof roomParam === "string" && roomParam && roomParam !== roomId) {
-      setRoomId(roomParam);
-    }
-  }, [roomParam, roomId]);
+  }, [socket, roomId]);
 
   useEffect(() => {
     if (resumeAttemptedRef.current) return;
@@ -101,9 +117,18 @@ export default function Create() {
       { roomId: roomParam, oldId: hostParam },
       (res?: ResumeAck) => {
         if (res?.ok) {
-          console.log("[create] host resume succeeded", { roomId: roomParam });
+          socket.emit("syncRoom", { roomId: roomParam }, (sync?: SyncResponse) => {
+            if (sync?.ok && sync.state) {
+              setRoom(sync.state);
+              if (sync.state.id) {
+                setRoomId((prev) => (sync.state.id !== prev ? sync.state.id : prev));
+              }
+            } else if (sync?.error) {
+              console.warn("[create] syncRoom after resume failed", sync.error);
+            }
+          });
         } else {
-          console.warn("[create] host resume failed", res?.error);
+          console.warn("[create] resume failed", res?.error);
           resumeAttemptedRef.current = false;
         }
       },
@@ -116,8 +141,17 @@ export default function Create() {
     }
   }, [autoCreate, creating, roomId]);
 
+  useEffect(() => {
+    if (typeof roomParam === "string" && roomParam && roomParam !== roomId) {
+      setRoomId(roomParam);
+    }
+  }, [roomParam, roomId]);
+
   const allPlayers = useMemo(() => Object.values(room?.players ?? {}), [room?.players]);
-  const players = useMemo(() => allPlayers.filter((p) => p.id !== room?.hostId), [allPlayers, room?.hostId]);
+  const players = useMemo(
+    () => allPlayers.filter((player) => player.id !== room?.hostId),
+    [allPlayers, room?.hostId],
+  );
   const playerCount = players.length;
 
   const handleCreateRoom = () => {
@@ -202,7 +236,7 @@ export default function Create() {
   };
 
   if (room && room.battle.started && room.battle.winner) {
-    const nonHostPlayers = Object.values(room.players).filter((p) => p.id !== room.hostId);
+    const nonHostPlayers = Object.values(room.players).filter((player) => player.id !== room.hostId);
 
     return (
       <SafeAreaView className="flex-1 bg-gray-100">
@@ -345,7 +379,9 @@ export default function Create() {
       <View className="min-h-full bg-gray-100 px-4">
         <View className="space-x-3 justify-start px-4">
           <Text className="text-2xl font-bold">Create a game room</Text>
-          <Text className="text-md font-bold">Tip: Share the room code with friends to play together</Text>
+          <Text className="text-md font-bold">
+            Tip: Share the room code with friends to play together
+          </Text>
         </View>
 
         {roomId ? (
@@ -374,7 +410,9 @@ export default function Create() {
           </Pressable>
         )}
 
-        <Text className="text-lg font-semibold mt-4 px-4">Enter a word to start the game</Text>
+        <Text className="text-lg font-semibold mt-4 px-4">
+          Enter a word to start the game
+        </Text>
 
         <TextInput
           className="bg-gray-300 rounded-lg p-2 mt-4 h-16 mx-4"
