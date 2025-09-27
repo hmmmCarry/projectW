@@ -1,10 +1,10 @@
 // server/index.js
-import cors from "cors";
 import express from "express";
-import fs from "fs";
+import cors from "cors";
 import { createServer } from "http";
-import path from "path";
 import { Server } from "socket.io";
+import fs from "fs";
+import path from "path";
 import { fileURLToPath } from "url";
 import { scoreGuess } from "./game.js";
 
@@ -38,9 +38,6 @@ function isValidWordLocal(word) {
   const w = word.toUpperCase();
   return /^[A-Z]{5}$/.test(w) && WORDSET.has(w);
 }
-// ---------- Duel timer ----------
-// Configure via env DUEL_ROUND_SECONDS (defaults to 420s = 7 minutes)
-const DUEL_ROUND_MS = Number(process.env.DUEL_ROUND_SECONDS || 420) * 1000;
 
 // ---------- Express app ----------
 const app = express();
@@ -185,13 +182,12 @@ function endDuelByTimeout(roomId) {
     }
   }
 
-  room.started = false;
-  room.roundClosed = true;
-  room.duelDeadline = null;
-  if (room._duelTimer) {
-    clearTimeout(room._duelTimer);
-    room._duelTimer = null;
-  }
+  room.started = true;
+  room.roundClosed = false;
+  room.duelReveal = undefined;
+  room.duelDeadline = Date.now() + DUEL_ROUND_MS;
+  if (room._duelTimer) clearTimeout(room._duelTimer);
+  room._duelTimer = setTimeout(() => endDuelByTimeout(roomId), DUEL_ROUND_MS);
 
   io.to(roomId).emit("roomState", sanitizeRoom(room));
 }
@@ -211,6 +207,10 @@ const io = new Server(httpServer, {
     origin: true, // or ['https://964d668fba0f.ngrok-free.app ']
     methods: ["GET", "POST"],
   },
+  pingInterval: 10000, // send pings every 10s
+  pingTimeout: 30000, // allow 30s before declaring dead
+  allowEIO3: true, // helps older clients/proxies
+  perMessageDeflate: false, // avoid some proxies’ compression issues
 });
 
 // ---------- Battle helpers ----------
@@ -348,16 +348,37 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     for (const [id, room] of rooms) {
       if (room.players[socket.id]) {
-        // mark as disconnected; keep their state for resume
         room.players[socket.id].disconnected = true;
-
-        // If absolutely nobody remains connected you can optionally keep the room;
+        room.players[socket.id].disconnectedAt = Date.now();
         io.to(id).emit("roomState", sanitizeRoom(room));
-
-        // DO NOT delete player; DO NOT delete room.
       }
     }
   });
+
+  // Optional sweeper (every 5 minutes):
+  setInterval(() => {
+    const TTL = 30 * 60 * 1000;
+    const now = Date.now();
+    for (const room of rooms.values()) {
+      for (const pid of Object.keys(room.players)) {
+        const p = room.players[pid];
+        if (
+          p.disconnected &&
+          p.disconnectedAt &&
+          now - p.disconnectedAt > TTL
+        ) {
+          // If they were host, pass host to first connected player
+          if (room.hostId === pid) {
+            const next = Object.keys(room.players).find(
+              (id) => !room.players[id].disconnected && id !== pid
+            );
+            if (next) room.hostId = next;
+          }
+          delete room.players[pid];
+        }
+      }
+    }
+  }, 5 * 60 * 1000);
 
   socket.on("createRoom", ({ name, mode = "duel" }, cb) => {
     const id = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -398,26 +419,80 @@ io.on("connection", (socket) => {
     io.to(id).emit("roomState", sanitizeRoom(room));
   });
 
+  // socket.on("joinRoom", ({ name, roomId }, cb) => {
+  //   const room = rooms.get(roomId);
+  //   if (!room) return cb?.({ error: "Room not found" });
+  //   if (room.mode === "duel" && Object.keys(room.players).length >= 2)
+  //     return cb?.({ error: "Room is full" });
+  //   // when creating the room:
+  //   room.players[socket.id] = {
+  //     name,
+  //     ready: false,
+  //     secret: null,
+  //     guesses: [],
+  //     done: false,
+  //     // NEW
+  //     wins: 0,
+  //     streak: 0,
+  //     disconnected: false,
+  //     rematchRequested: false,
+  //   };
+  //   socket.join(roomId);
+  //   cb?.({ ok: true });
+  //   io.to(roomId).emit("roomState", sanitizeRoom(room));
+  // });
+
   socket.on("joinRoom", ({ name, roomId }, cb) => {
     const room = rooms.get(roomId);
     if (!room) return cb?.({ error: "Room not found" });
     if (room.mode === "duel" && Object.keys(room.players).length >= 2)
       return cb?.({ error: "Room is full" });
-    // when creating the room:
+
+    // 1) Try to find a disconnected entry with same name
+    const oldId = Object.keys(room.players).find(
+      (id) =>
+        (room.players[id].name || "").trim().toLowerCase() ===
+          (name || "").trim().toLowerCase() && room.players[id].disconnected
+    );
+
+    if (oldId) {
+      // 2) Remove any auto-created placeholder for this new socket (defensive)
+      if (room.players[socket.id] && socket.id !== oldId) {
+        delete room.players[socket.id];
+      }
+
+      // 3) Move the old state to the new socket.id
+      const old = room.players[oldId];
+      room.players[socket.id] = { ...old, disconnected: false };
+
+      // 4) Fix references that pointed at oldId
+      if (room.hostId === oldId) room.hostId = socket.id;
+      if (room.winner === oldId) room.winner = socket.id;
+      if (room.battle?.winner === oldId) room.battle.winner = socket.id;
+
+      // 5) Delete the stale entry
+      delete room.players[oldId];
+
+      socket.join(roomId);
+      io.to(roomId).emit("roomState", sanitizeRoom(room));
+      return cb?.({ ok: true, resumed: true });
+    }
+
+    // 6) No prior disconnected state → create fresh
     room.players[socket.id] = {
       name,
       ready: false,
       secret: null,
       guesses: [],
       done: false,
-      // NEW
       wins: 0,
       streak: 0,
       disconnected: false,
       rematchRequested: false,
     };
+
     socket.join(roomId);
-    cb?.({ ok: true });
+    cb?.({ ok: true, resumed: false });
     io.to(roomId).emit("roomState", sanitizeRoom(room));
   });
 

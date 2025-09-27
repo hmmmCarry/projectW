@@ -59,6 +59,15 @@ export default function GameStart() {
 
   const allPlayers = useMemo(() => Object.values(room?.players ?? {}), [room?.players]);
   const viewerList = useMemo(() => allPlayers.filter(p => p.id !== room?.hostId), [allPlayers, room?.hostId]);
+  
+  console.log("Game start debug:", {
+    roomId,
+    socketId,
+    hostId: room?.hostId,
+    allPlayers: allPlayers.length,
+    viewerList: viewerList.length,
+    players: allPlayers.map(p => ({ id: p.id, name: p.name }))
+  });
 
   const [activeIndex, setActiveIndex] = useState(0);
   const pagerRef = useRef<FlatList<Player>>(null);

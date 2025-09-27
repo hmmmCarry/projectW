@@ -105,15 +105,15 @@ export default function BattlePlayerGameStart() {
       socket.emit("joinRoom", { name: playerName, roomId }, (res?: { ok?: boolean; error?: string }) => {
         console.log("Join room response:", res);
         if (res?.ok) {
-          console.log("Successfully joined room, navigating to waiting screen");
-          router.push(`/battle-waiting?roomId=${roomId}`);
+          console.log("Successfully joined room, staying on game screen");
+          // Stay on this screen like duel does
         } else {
           console.error("Failed to join room:", res?.error);
           alert(res?.error || "Failed to join room");
         }
       });
     }
-  }, [roomId, socketId, playerName, room?.players, socket, router]);
+  }, [roomId, socketId, playerName, room?.players, socket]);
 
   const players = useMemo(() => Object.values(room?.players ?? {}), [room?.players]);
   const me = socketId ? room?.players?.[socketId] : undefined;
@@ -177,7 +177,7 @@ export default function BattlePlayerGameStart() {
     ? (guess.length === WORD_LENGTH ? "ready" : "default")
     : "disabled";
 
-  // Build opponent strip data, excluding self
+  // Build progress strip data, excluding self
   const stripPlayers = useMemo(() => {
     return players
       .filter((p) => p.id !== socketId)
@@ -191,6 +191,178 @@ export default function BattlePlayerGameStart() {
         online: !p.disconnected,
       }));
   }, [players, socketId]);
+
+  // Show waiting screen if game hasn't started
+  if (room && !room.battle.started) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-100">
+        <View className="flex-1 px-4 pt-2">
+          <View className="items-center mb-6">
+            <Text className="text-lg font-semibold text-gray-700 mt-2">Waiting Room</Text>
+            <Text className="text-sm text-gray-500 mt-1">{stageMessage}</Text>
+          </View>
+
+          <View className="bg-white rounded-xl p-4 mb-4">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-lg font-semibold">Players ({players.filter(p => p.id !== room.hostId).length}/6)</Text>
+              <View className="flex-row items-center gap-2">
+                <View className="w-2 h-2 bg-green-400 rounded-full" />
+                <Text className="text-sm text-gray-600">Online</Text>
+              </View>
+            </View>
+
+            {players.filter(p => p.id !== room.hostId).length === 0 ? (
+              <View className="py-8">
+                <Text className="text-gray-500 text-center">No players joined yet</Text>
+              </View>
+            ) : (
+              <View>
+                {players.filter(p => p.id !== room.hostId).map((player) => (
+                  <View key={player.id} className="flex-row items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                    <View className="flex-row items-center gap-3">
+                      <View className="w-8 h-8 bg-gray-200 rounded-full items-center justify-center">
+                        <Text className="text-sm font-semibold text-gray-700">
+                          {(player.name || "?").charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text className="text-gray-800 font-medium">{player.name || "Unknown"}</Text>
+                    </View>
+                    <View className="flex-row items-center gap-4">
+                      <Text className="text-sm text-gray-500">W:{player.wins || 0}</Text>
+                      <Text className="text-sm text-gray-500">S:{player.streak || 0}</Text>
+                      <View
+                        className={`w-2 h-2 rounded-full ${
+                          player.disconnected ? "bg-red-400" : "bg-green-400"
+                        }`}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {me && (
+            <View className="bg-blue-50 rounded-xl p-4">
+              <Text className="text-blue-800 font-medium text-center">
+                You're ready to play! Waiting for the game to start...
+              </Text>
+            </View>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show game results screen if game has ended
+  if (room && room.battle.started && room.battle.winner) {
+    const winner = players.find(p => p.id === room.battle.winner);
+    const revealedWord = room.battle.lastRevealedWord;
+    
+    return (
+      <SafeAreaView className="flex-1 bg-gray-100">
+        <View className="flex-1 px-4 pt-2">
+          {/* Header */}
+          <View className="items-center mb-6">
+            <Text className="text-2xl font-bold text-gray-800">Battle Royale</Text>
+            {winner && (
+              <Text className="text-lg text-blue-600 font-semibold mt-1">
+                Winner: {winner.name}
+              </Text>
+            )}
+          </View>
+
+          {/* Round Results */}
+          <View className="items-center mb-6">
+            <View className="flex-row items-center gap-2 mb-3">
+              <Text className="text-lg">🏆</Text>
+              <Text className="text-lg font-semibold text-gray-700">Round Results</Text>
+            </View>
+            
+            {/* Revealed Word */}
+            {revealedWord && (
+              <View className="flex-row gap-2 mb-4">
+                {revealedWord.toUpperCase().split('').map((letter, i) => (
+                  <View
+                    key={i}
+                    className="w-12 h-12 rounded border items-center justify-center"
+                    style={{
+                      backgroundColor: "#6AAA64",
+                      borderColor: "#6AAA64",
+                    }}
+                  >
+                    <Text className="text-white font-extrabold text-lg">
+                      {letter}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Podium */}
+            {winner && (
+              <View className="bg-white rounded-xl p-6 items-center shadow-sm">
+                <Text className="text-2xl mb-2">👑</Text>
+                <Text className="text-xl mb-1">🥇</Text>
+                <Text className="text-xl font-bold text-gray-800 mb-1">
+                  {winner.name}
+                </Text>
+                <Text className="text-sm text-gray-500">1</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Player Stats Table */}
+          <View className="bg-white rounded-xl p-4">
+            <View className="flex-row bg-gray-100 rounded-lg px-3 py-2 mb-3">
+              <Text className="flex-1 text-sm font-semibold text-gray-600">Player</Text>
+              <Text className="w-16 text-sm font-semibold text-gray-600">Round</Text>
+              <Text className="w-12 text-sm font-semibold text-gray-600">Wins</Text>
+              <Text className="w-12 text-sm font-semibold text-gray-600">Streak</Text>
+            </View>
+            
+            {players.filter(p => p.id !== room.hostId).map((player) => (
+              <View
+                key={player.id}
+                className={`flex-row items-center py-2 px-3 rounded-lg mb-1 ${
+                  player.id === room.battle.winner ? "bg-yellow-50" : ""
+                }`}
+              >
+                <View className="flex-1 flex-row items-center gap-2">
+                  <View
+                    className={`w-2 h-2 rounded-full ${
+                      player.id === room.battle.winner
+                        ? "bg-yellow-500"
+                        : "bg-gray-300"
+                    }`}
+                  />
+                  <Text className="text-sm text-gray-800 font-medium">
+                    {player.name || "Unknown"}
+                  </Text>
+                </View>
+                <Text className="w-16 text-sm text-gray-600">
+                  {player.guesses?.length || 0}
+                </Text>
+                <Text className="w-12 text-sm text-gray-600">
+                  {player.wins || 0}
+                </Text>
+                <Text className="w-12 text-sm text-gray-600">
+                  {player.streak || 0}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Waiting for next game */}
+          <View className="bg-blue-50 rounded-xl p-4 mt-4">
+            <Text className="text-blue-800 font-medium text-center">
+              Waiting for host to start the next game...
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
