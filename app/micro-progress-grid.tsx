@@ -1,16 +1,20 @@
+import { useTheme } from "@/providers/ThemeProvider";
+import { normalizeGuessStates } from "@/utils/normalizeGuess";
 import React from "react";
 import { View } from "react-native";
 
+type CellState = "correct" | "present" | "absent" | "idle" | "filled";
+type CellStateInput = CellState | "green" | "yellow" | "gray";
+
 type Props = {
-  rows?: number;          // default 4
-  cols?: number;          // default 5
-  /** cells filled from top-left across, then down; e.g. guesses*5 */
-  filled?: number;        // 0..rows*cols
-  size?: number;          // px per square
-  gap?: number;           // px gap between squares
-  radius?: number;        // corner radius for each square
-  /** light/dark neutral greys only (no brand yet) */
+  rows?: number;
+  cols?: number;
+  filled?: number;
+  size?: number;
+  gap?: number;
+  radius?: number;
   tone?: "light" | "dark";
+  patterns?: CellStateInput[][];
 };
 
 function MicroProgressGrid({
@@ -20,16 +24,58 @@ function MicroProgressGrid({
   size = 11,
   gap = 2,
   radius = 4,
-  tone = "light",
+  tone,
+  patterns,
 }: Props) {
+  const theme = useTheme();
   const total = rows * cols;
-  const cells = Array.from({ length: total });
+  const hasPatterns = Array.isArray(patterns) && patterns.length > 0;
 
-  // keep everything neutral for now (works on #F6F6FE)
-  const border = tone === "dark" ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.10)";
-  const box    = tone === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
-  const off    = tone === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
-  const on     = tone === "dark" ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)";
+  const sanitizedPatterns: CellState[][] | undefined = hasPatterns
+    ? patterns!.map((row) =>
+        Array.from({ length: cols }, (_, i) => {
+          const value = row?.[i];
+          if (value === "correct" || value === "present" || value === "absent") {
+            return value as CellState;
+          }
+          if (value === "green" || value === "yellow" || value === "gray") {
+            const normalized = normalizeGuessStates([value]);
+            return normalized[0] as CellState;
+          }
+          return "idle";
+        })
+      )
+    : undefined;
+
+  const makeIdleRow = () => Array.from({ length: cols }, () => "idle" as CellState);
+
+  const cellStates: CellState[] = (() => {
+    if (sanitizedPatterns && sanitizedPatterns.length > 0) {
+      const sanitizedCount = sanitizedPatterns.length;
+      const startIndex = sanitizedCount > rows ? sanitizedCount - rows : 0;
+      const visibleRows = sanitizedPatterns.slice(startIndex, sanitizedCount);
+      const paddedRows = [...visibleRows, ...Array.from({ length: rows - visibleRows.length }, makeIdleRow)];
+      return paddedRows.flat();
+    }
+
+    const clampedFilled = Math.max(0, Math.min(total, filled));
+    return Array.from({ length: total }, (_, i) => (i < clampedFilled ? "filled" : "idle"));
+  })();
+
+  const border = theme.colors.border;
+  const palette = {
+    idle: theme.colors.surfaceElevated,
+    filled: theme.colors.neutral,
+    correct: theme.wordle.correct,
+    present: theme.wordle.present,
+    absent: theme.wordle.absent,
+  } as const;
+
+  const colorFor = (state: CellState) => {
+    if (state === "correct" || state === "present" || state === "absent") return palette[state];
+    if (state === "filled") return palette.filled;
+    return palette.idle;
+  };
 
   return (
     <View
@@ -40,7 +86,6 @@ function MicroProgressGrid({
         borderColor: border,
         backgroundColor: "transparent",
       }}
-      // keeps the outer rounded inset like your mock
     >
       <View
         style={{
@@ -49,10 +94,9 @@ function MicroProgressGrid({
           width: cols * size + (cols - 1) * gap,
         }}
       >
-        {cells.map((_, i) => {
-          const active = i < filled;
+        {cellStates.map((state, i) => {
           const isLastInRow = (i + 1) % cols === 0;
-          const isLastRow   = i >= total - cols;
+          const isLastRow = i >= cellStates.length - cols;
 
           return (
             <View
@@ -63,10 +107,9 @@ function MicroProgressGrid({
                 borderRadius: radius,
                 borderWidth: 1,
                 borderColor: border,
-                backgroundColor: active ? on : off,
+                backgroundColor: colorFor(state),
                 marginRight: isLastInRow ? 0 : gap,
                 marginBottom: isLastRow ? 0 : gap,
-                // subtle inner plate
                 shadowColor: "#000",
                 shadowOpacity: 0.04,
                 shadowRadius: 1,

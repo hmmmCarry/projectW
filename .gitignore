@@ -41,3 +41,19 @@ app-example
 # generated native folders
 /ios
 /android
+
+.fake# root-level environment files
+.env
+.env.production
+.env.staging
+
+# Expo generated state
+.expo-shared/
+# React Native cache
+.npm/
+.yarn/
+.bundle/
+.vscode/settings.json
+
+# OS artifacts
+Thumbs.db

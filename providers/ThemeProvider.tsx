@@ -1,43 +1,121 @@
-import { themes } from "@/utils/color-theme";
-import React, { createContext, useState } from "react";
-import { StatusBar, View } from "react-native";
+﻿import React, { createContext, useContext, useMemo, useState } from "react";
+import { useColorScheme } from "react-native";
 
-interface ThemeProviderProps {
-  children: React.ReactNode;
-}
+type ThemeMode = "light" | "dark";
+type Preference = "system" | ThemeMode;
 
-type ThemeContextType = {
-  theme: "light" | "dark";
-  toggleTheme: () => void;
+type ThemeColors = {
+  background: string;
+  card: string;
+  border: string;
+  text: string;
+  textMuted: string;
+  accent: string;
+  textOnAccent: string;
+  textOnSurface: string;
+  surface: string;
+  surfaceElevated: string;
+  success: string;
+  neutral: string;
 };
 
-export const ThemeContext = createContext<ThemeContextType | undefined>({
-  theme: "light",
-  toggleTheme: () => {},
-});
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+type Theme = {
+  mode: ThemeMode;
+  colors: ThemeColors;
+  wordle: {
+    correct: string;
+    present: string;
+    absent: string;
   };
+};
+
+type ThemePreferenceContext = {
+  preference: Preference;
+  setPreference: (p: Preference) => void;
+  mode: ThemeMode;
+};
+
+const ThemeContext = createContext<Theme | undefined>(undefined);
+const ThemePreferenceContext = createContext<ThemePreferenceContext | undefined>(
+  undefined
+);
+
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const system = useColorScheme();
+  const [preference, setPreference] = useState<Preference>("system");
+
+  const mode: ThemeMode = useMemo(() => {
+    if (preference === "system") return (system || "light") as ThemeMode;
+    return preference;
+  }, [preference, system]);
+
+  const colors: ThemeColors = useMemo(() => {
+    if (mode === "dark") {
+      return {
+        background: "#0b0b10",
+        card: "#111827",
+        border: "rgba(255,255,255,0.10)",
+        text: "#e5e7eb",
+        textMuted: "#9ca3af",
+        accent: "#6366f1",
+        textOnAccent: "#ffffff",
+        textOnSurface: "#f9fafb",
+        surface: "#111827",
+        surfaceElevated: "#1f2937",
+        success: "#22c55e",
+        neutral: "#6b7280",
+      };
+    }
+    return {
+      background: "#F6F6FE",
+      card: "#ffffff",
+      border: "rgba(0,0,0,0.08)",
+      text: "#111827",
+      textMuted: "#6b7280",
+      accent: "#7c3aed",
+      textOnAccent: "#ffffff",
+      textOnSurface: "#1a1a1b",
+      surface: "#ffffff",
+      surfaceElevated: "#f3f4f6",
+      success: "#22c55e",
+      neutral: "#9ca3af",
+    };
+  }, [mode]);
+
+  const wordle = useMemo(() => {
+    if (mode === "dark") {
+      return {
+        correct: "#538d4e",
+        present: "#b59f3b",
+        absent: "#3a3a3c",
+      };
+    }
+    return {
+      correct: "#6aaa64",
+      present: "#c9b458",
+      absent: "#787c7e",
+    };
+  }, [mode]);
+
+  const theme: Theme = useMemo(() => ({ mode, colors, wordle }), [mode, colors, wordle]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <StatusBar
-        barStyle={theme === "dark" ? "light-content" : "dark-content"}
-      />
-      <View style={themes[theme]} className="flex-1">
-        {children}
-      </View>
-    </ThemeContext.Provider>
+    <ThemePreferenceContext.Provider value={{ preference, setPreference, mode }}>
+      <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
+    </ThemePreferenceContext.Provider>
   );
 };
 
 export const useTheme = () => {
-  const context = React.useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
+  return ctx;
 };
+
+export const useThemePreference = () => {
+  const ctx = useContext(ThemePreferenceContext);
+  if (!ctx)
+    throw new Error("useThemePreference must be used within ThemeProvider");
+  return ctx;
+};
+

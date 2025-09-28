@@ -1,104 +1,80 @@
-// import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-// import React from "react";
-// import { Pressable, Text, View } from "react-native";
-
-// type PlayerPillProps = {
-//   name: string;
-//   avatar?: string;            // emoji or single letter
-//   wins?: number;
-//   streak?: number;
-//   isHost?: boolean;
-//   connected?: boolean;        // online indicator
-//   onPressProgress?: () => void; // grid button handler
-//   className?: string;         // extra Tailwind classes if you need
-// };
-
-// export function PlayerPill({
-//   name,
-//   avatar = "😊",
-//   wins = 0,
-//   streak = 0,
-//   isHost = false,
-//   connected = true,
-//   onPressProgress,
-//   className = "",
-// }: PlayerPillProps) {
-//   return (
-//     <View
-//       className={`mx-4 rounded-2xl bg-neutral-900 border border-white/10 px-3 py-2 flex-row items-center ${className}`}
-//     >
-//       {/* Connection dot */}
-//       <View className="mr-2">
-//         <View
-//           className={`w-2.5 h-2.5 rounded-full ${
-//             connected ? "bg-emerald-400" : "bg-neutral-500"
-//           }`}
-//         />
-//       </View>
-
-//       {/* Avatar */}
-//       <View className="w-9 h-9 rounded-full bg-purple-600/20 items-center justify-center mr-2">
-//         <Text className="text-purple-300 font-semibold">{avatar}</Text>
-//       </View>
-
-//       {/* Name & stats */}
-//       <View className="flex-1 min-w-0">
-//         <View className="flex-row items-center gap-1">
-//           <Text
-//             numberOfLines={1}
-//             className="text-neutral-100 font-semibold"
-//           >
-//             {name}
-//           </Text>
-
-//           {isHost && (
-//             <MaterialCommunityIcons
-//               name="crown-outline"
-//               size={14}
-//               color="#f5c052"
-//             />
-//           )}
-//         </View>
-
-//         <Text className="text-xs text-neutral-400">
-//           W:{wins}   STREAK:{streak}
-//         </Text>
-//       </View>
-
-//       {/* Opponent progress (mini-board) button */}
-//       <Pressable
-//         onPress={onPressProgress}
-//         className="w-9 h-9 rounded-xl bg-white/5 items-center justify-center active:opacity-80"
-//         accessibilityRole="button"
-//         accessibilityLabel="Show progress"
-//       >
-//         <Ionicons name="grid-outline" size={18} color="#cdd0d5" />
-//       </Pressable>
-//     </View>
-//   );
-// }
-
+import { useTheme } from "@/providers/ThemeProvider";
+import { normalizeGuessStates } from "@/utils/normalizeGuess";
 import React, { useMemo } from "react";
-import { Text, View } from "react-native";
+import { Image, Pressable, Text, View, ViewStyle } from "react-native";
 import MicroProgressGrid from "./micro-progress-grid";
+
+export type PlayerPillGuessStateInput =
+  | "correct"
+  | "present"
+  | "absent"
+  | "tbd"
+  | "empty"
+  | "idle"
+  | "green"
+  | "yellow"
+  | "gray"
+  | null
+  | undefined;
+type GuessState = "correct" | "present" | "absent" | "idle";
 
 type PlayerPillProps = {
   name: string;
-  avatar?: string;             // emoji or char
+  avatar?: string;
+  avatarUri?: string;
   wins?: number;
   streak?: number;
   online?: boolean;
-  // Progress source (e.g., number of guesses made)
-  guessesCount?: number;       // 0..6 for Wordle
-  maxGuesses?: number;         // default 6
-  // Grid config (kept 4x4 to match your mock)
+  guessesCount?: number;
+  maxGuesses?: number;
   gridRows?: number;
   gridCols?: number;
+  onPress?: () => void;
+  active?: boolean;
+  showProgressGrid?: boolean;
+  guessPatterns?: PlayerPillGuessStateInput[][];
+  tone?: "light" | "dark";
+  style?: ViewStyle;
 };
 
-export function PlayerPill({
+const LIGHT_COLORS = {
+  base: {
+    background: "#F6F6FE",
+    border: "rgba(0,0,0,0.08)",
+    text: "#111827",
+    meta: "#6B7280",
+    badgeBorder: "#F6F6FE",
+  },
+  active: {
+    background: "#E0E7FF",
+    border: "#6366F1",
+    text: "#312E81",
+    meta: "#4C1D95",
+    badgeBorder: "#E0E7FF",
+  },
+} as const;
+
+const DARK_COLORS = {
+  base: {
+    background: "rgba(255,255,255,0.08)",
+    border: "rgba(255,255,255,0.16)",
+    text: "#E2E8F0",
+    meta: "#CBD5F5",
+    badgeBorder: "rgba(255,255,255,0.08)",
+  },
+  active: {
+    background: "rgba(99,102,241,0.28)",
+    border: "#6366F1",
+    text: "#EEF2FF",
+    meta: "#C7D2FE",
+    badgeBorder: "rgba(99,102,241,0.28)",
+  },
+} as const;
+
+export default function PlayerPill({
   name,
-  avatar = "😊",
+  avatar,
+  avatarUri,
   wins = 0,
   streak = 0,
   online = true,
@@ -106,86 +82,123 @@ export function PlayerPill({
   maxGuesses = 6,
   gridRows = 3,
   gridCols = 5,
+  onPress,
+  active = false,
+  showProgressGrid = true,
+  guessPatterns,
+  tone,
+  style,
 }: PlayerPillProps) {
-  // map 0..maxGuesses onto 0..(rows*cols)
+  const theme = useTheme();
   const totalCells = gridRows * gridCols;
-  const filled = useMemo(() => {
-    const ratio = Math.max(0, Math.min(1, guessesCount / maxGuesses));
-    return Math.round(ratio * totalCells);
-  }, [guessesCount, maxGuesses, totalCells]);
+  const palette = useMemo(() => {
+    const baseTone = tone ?? (theme.mode === "dark" ? "dark" : "light");
+    const colors = baseTone === "dark" ? DARK_COLORS : LIGHT_COLORS;
+    return active ? colors.active : colors.base;
+  }, [active, theme.mode, tone]);
+
+  const sanitizedPatterns = useMemo(() => {
+    if (!showProgressGrid || !guessPatterns?.length) return undefined;
+    return guessPatterns.map((row) =>
+      Array.from({ length: gridCols }, (_, idx) => {
+        const state = row?.[idx];
+        if (state === "correct" || state === "present" || state === "absent") {
+          return state as GuessState;
+        }
+        if (state === "green" || state === "yellow" || state === "gray") {
+          const normalized = normalizeGuessStates([state]);
+          return normalized[0] as GuessState;
+        }
+        return "idle" as GuessState;
+      }),
+    );
+  }, [guessPatterns, gridCols, showProgressGrid]);
+
+  const fallbackFilled = useMemo(() => {
+    if (sanitizedPatterns) return 0;
+    if (!showProgressGrid) return 0;
+    const clampedGuesses = Math.max(0, Math.min(maxGuesses, guessesCount));
+    return Math.max(0, Math.min(totalCells, clampedGuesses * gridCols));
+  }, [guessesCount, maxGuesses, showProgressGrid, totalCells, sanitizedPatterns, gridCols]);
+
+  const Wrapper = onPress ? Pressable : View;
+  const avatarLabel = avatar || (name ? name.trim().charAt(0).toUpperCase() : "?");
+  const gridProps = sanitizedPatterns ? { patterns: sanitizedPatterns } : { filled: fallbackFilled };
+  const gridTone = tone ?? (active ? "dark" : undefined);
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        borderRadius: 24,
-        backgroundColor: "#F6F6FE",
-        borderColor: "rgba(0,0,0,0.08)",
-        borderWidth: 1,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        flexDirection: "row",
-        alignItems: "center",
-      }}
+    <Wrapper
+      onPress={onPress}
+      disabled={!onPress}
+      style={[
+        {
+          borderRadius: 32,
+          backgroundColor: palette.background,
+          borderColor: palette.border,
+          borderWidth: 1,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+        },
+        style,
+      ]}
     >
-      {/* Avatar + online dot */}
-      <View style={{ marginRight: 8 }}>
+      <View style={{ position: "relative" }}>
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            backgroundColor: "white",
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: active ? "rgba(255,255,255,0.28)" : "white",
             borderWidth: 1,
-            borderColor: "rgba(0,0,0,0.08)",
+            borderColor: active ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.08)",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text style={{ fontSize: 18 }}>{avatar}</Text>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={{ width: 36, height: 36, borderRadius: 18 }} resizeMode="cover" />
+          ) : (
+            <Text style={{ fontSize: 18, color: palette.text }}>{avatarLabel}</Text>
+          )}
         </View>
-        {/* online dot anchored to bottom-left like your mock */}
         <View
           style={{
             position: "absolute",
             left: -2,
             bottom: -2,
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: online ? "#22c55e" : "rgba(0,0,0,0.2)",
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: online ? "#34D399" : "rgba(0,0,0,0.15)",
             borderWidth: 2,
-            borderColor: "#F6F6FE",
+            borderColor: palette.badgeBorder,
           }}
         />
       </View>
 
-      {/* Name + stats */}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          style={{
-            color: "#111827",
-            fontWeight: "600",
-          }}
-        >
+        <Text numberOfLines={1} style={{ color: palette.text, fontWeight: "600", fontSize: 14 }}>
           {name}
         </Text>
-        <Text
-          style={{
-            color: "rgba(17,24,39,0.65)",
-            fontWeight: "700",
-            fontSize: 12,
-            letterSpacing: 0.2,
-          }}
-        >
+        <Text style={{ color: palette.meta, fontWeight: "600", fontSize: 11, letterSpacing: 0.2 }}>
           W:{wins}  STREAK:{streak}
         </Text>
       </View>
 
-      {/* Real progress grid*/}
-      <MicroProgressGrid rows={gridRows} cols={gridCols} filled={7} gap={1}  // the rounded frame padding
-/>
-    </View>
+      {showProgressGrid ? (
+        <MicroProgressGrid
+          rows={gridRows}
+          cols={gridCols}
+          size={11}
+          gap={2}
+          radius={4}
+          tone={gridTone}
+          {...gridProps}
+        />
+      ) : null}
+    </Wrapper>
   );
 }
