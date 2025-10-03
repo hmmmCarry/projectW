@@ -1,12 +1,15 @@
 import NavHeader from "@/components/NavHeader";
+import { useTheme } from "@/providers/ThemeProvider";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function BattleRoyaleLobby() {
   const router = useRouter();
+  const theme = useTheme();
+  const { colors } = theme;
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
 
@@ -33,7 +36,7 @@ export default function BattleRoyaleLobby() {
 
   return (
     <SafeAreaView>
-      <View className="bg-gray-100 px-4">
+      <View style={{ backgroundColor: colors.background, paddingHorizontal: 16 }}>
         <NavHeader />
 
         <View className="flex-row items-center space-x-3 justify-start px-4 mt-4">

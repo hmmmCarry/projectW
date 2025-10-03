@@ -1,14 +1,40 @@
+import { getSocket } from "@/lib/socket";
+import { useTheme } from "@/providers/ThemeProvider";
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "../globals.css";
 
 export default function Index() {
   const router = useRouter();
+  const socket = useMemo(() => getSocket(), []);
+  const theme = useTheme();
+  const { colors } = theme;
+
+  const handleDevQuickDuel = () => {
+    if (!__DEV__) return;
+    const name = "Dev";
+    if (!socket.connected) socket.connect();
+    socket.emit(
+      "createRoom",
+      { name, mode: "duel" },
+      (res?: { roomId?: string; error?: string }) => {
+        if (res?.roomId) {
+          router.push({
+            pathname: "/duel-game-start",
+            params: { roomId: res.roomId, name, host: "1" },
+          });
+        } else {
+          console.warn(res?.error || "Could not create room.");
+        }
+      }
+    );
+  };
   return (
     <SafeAreaView className="flex-1">
-      <View className="px-2 justify-center bg-gray-100 mt-4">
+      <View style={{ paddingHorizontal: 8, justifyContent: "center", backgroundColor: colors.background, marginTop: 16 }}>
         <View className="flex flex-row items-center justify-between w-full px-4 mb-2">
           <View className="">
             <Text className="text-[24px]">Hello there!</Text>
@@ -38,6 +64,17 @@ export default function Index() {
           </Pressable>
           <View className="h-32 w-52 bg-gray-400 rounded-lg mt-4"></View>
         </ScrollView>
+
+        {__DEV__ ? (
+          <View className="px-4 mt-3">
+            <Pressable
+              onPress={handleDevQuickDuel}
+              className="bg-fuchsia-500 rounded-lg h-12 items-center justify-center"
+            >
+              <Text className="text-white font-bold">Quick Duel (Dev)</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View className="flex-row items-center space-x-3 justify-start px-4 mt-2">
           <MaterialCommunityIcons name="crown" size={24} color="black" />

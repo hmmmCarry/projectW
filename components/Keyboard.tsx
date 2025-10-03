@@ -1,5 +1,5 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import React from "react";
+import { useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 type EnterStatus = "default" | "ready" | "disabled";
@@ -9,6 +9,8 @@ type Props = {
   enterStatus?: EnterStatus;
   disabled?: boolean;
   letterStates?: Record<string, "correct" | "present" | "absent">;
+  height?: number;
+  className?: string;
 };
 
 type KeyDef = {
@@ -26,16 +28,17 @@ const KEY_LAYOUT: KeyDef[][] = [
     { code: "H" }, { code: "J" }, { code: "K" }, { code: "L" },
   ],
   [
-    { code: "ENTER", flex: 1.4 },
+    { code: "ENTER", flex: 1.5 },
     { code: "Z" }, { code: "X" }, { code: "C" }, { code: "V" },
     { code: "B" }, { code: "N" }, { code: "M" },
-    { code: "BACKSPACE", flex: 1.4 },
+    { code: "BACKSPACE", flex: 1.5 },
   ],
 ];
 
+
 const KEY_LABEL: Record<string, string> = {
   ENTER: "ENTER",
-  BACKSPACE: "DEL",
+  BACKSPACE: "⌫",
 };
 
 const PALETTE = {
@@ -80,23 +83,46 @@ export default function GameKeyboard({
   enterStatus = "default",
   disabled = false,
   letterStates,
+  height = 260,
+  className = "",
 }: Props) {
   const theme = useTheme();
   const { colors, wordle } = theme;
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
+
+  // layout constants
+  const horizontalPadding = 12; // container left/right padding
+  const verticalPadding = 12 + 20; // top + bottom from component styles below
+  const keyGap = 6; // horizontal gap between keys (reduced for better spacing)
+  const rowGap = 8; // vertical gap between rows (reduced for better spacing)
+  const borderRadius = 8; // reduced for modern look
+
+  const rowHeight = useMemo(() => {
+    const rows = KEY_LAYOUT.length;
+    const available = height - verticalPadding - rowGap * (rows - 1);
+    return Math.max(40, Math.floor(available / rows));
+  }, [height]);
 
   const handlePress = (code: string) => {
     if (disabled) return;
     if (code === "ENTER" && enterStatus === "disabled") return;
+    setPressedKey(code);
     onKeyPress(code);
+    setTimeout(() => setPressedKey(null), 100);
   };
 
   return (
     <View
       style={{
-        paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 20,
         backgroundColor: colors.surface,
+        height,
+      }}
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        if (w > 0 && w !== containerWidth) setContainerWidth(w);
       }}
     >
       {KEY_LAYOUT.map((row, rowIndex) => (
@@ -105,13 +131,26 @@ export default function GameKeyboard({
           style={{
             flexDirection: "row",
             justifyContent: "center",
-            marginBottom: rowIndex === KEY_LAYOUT.length - 1 ? 0 : 10,
+            marginBottom: rowIndex === KEY_LAYOUT.length - 1 ? 0 : rowGap,
+            paddingHorizontal: horizontalPadding,
           }}
         >
-          {row.map((key) => {
+          {row.map((key, colIndex) => {
             const state = letterStates?.[key.code];
             let background = colors.neutral;
             let foreground = colors.text;
+            const totalFlex = row.reduce((sum, k) => sum + (k.flex ?? 1), 0);
+// compute uniform width per key for this row
+const keysInRow = row.length;
+const availableWidth = Math.max(
+  0,
+  containerWidth - horizontalPadding * 2 - keyGap * (keysInRow - 1),
+);
+            const unitWidth = availableWidth / totalFlex;
+
+            const keyWidth = (key.flex ?? 1) * unitWidth;
+            const isSecondRow = rowIndex === 1;
+            const extraMargin = isSecondRow && colIndex === 0 ? keyWidth * 0.5 : 0;
 
             if (state) {
               if (state === "correct") {
@@ -139,29 +178,42 @@ export default function GameKeyboard({
               foreground = "#fff";
             }
 
+            
+            
+
+            const isPressed = pressedKey === key.code;
+            const isDisabled = disabled || (key.code === "ENTER" && enterStatus === "disabled");
+
             return (
               <TouchableOpacity
                 key={key.code}
                 onPress={() => handlePress(key.code)}
                 activeOpacity={0.85}
-                disabled={disabled || (key.code === "ENTER" && enterStatus === "disabled")}
+                disabled={isDisabled}
                 style={{
-                  flex: key.flex ?? 1,
-                  marginHorizontal: 4,
-                  borderRadius: 12,
+                  width: keyWidth,
+                  height: rowHeight,
+                  marginLeft: extraMargin, // shift row 2
+                  marginRight: colIndex === row.length - 1 ? 0 : keyGap,
+                  borderRadius,
                   backgroundColor: background,
-                  minHeight: 54,
                   alignItems: "center",
                   justifyContent: "center",
-                  paddingHorizontal: key.code === "ENTER" || key.code === "BACKSPACE" ? 8 : 0,
-                  opacity: disabled ? 0.5 : 1,
+                  opacity: isDisabled ? 0.5 : 1,
+                  transform: [{ scale: isPressed ? 0.95 : 1 }],
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 2,
                 }}
               >
                 <Text
                   style={{
                     color: foreground,
                     fontWeight: "700",
-                    fontSize: 16,
+                    fontSize: key.code === "ENTER" ? 12 : 16,
+                    textAlign: "center",
                   }}
                 >
                   {KEY_LABEL[key.code] || key.code}

@@ -1,5 +1,5 @@
 ﻿import { useTheme } from "@/providers/ThemeProvider";
-import React, { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View, ViewStyle, useWindowDimensions } from "react-native";
 
 type TileState = "empty" | "correct" | "present" | "absent" | "tbd";
@@ -20,11 +20,12 @@ type Props = {
   style?: ViewStyle;
   // index of the row to animate flip reveal (e.g., the last submitted row)
   revealRowIndex?: number | null;
+  onMetrics?: (m: { tileSize: number; spacing: number }) => void;
 };
 
 const DEFAULT_ROWS = 6;
 const DEFAULT_COLUMNS = 5;
-const DEFAULT_GAP = 8;
+const DEFAULT_GAP = 5;
 
 const COLORS = {
   dark: {
@@ -37,25 +38,15 @@ const COLORS = {
     text: "#f9fafb",
     boardBg: "#121213",
   },
-  // light: {
-  //   border: "#d3d6da",
-  //   filledBorder: "#878a8c",
-  //   emptyBg: "#ffffff",
-  //   correct: "#6aaa64",
-  //   present: "#c9b458",
-  //   absent: "#787c7e",
-  //   text: "#1a1a1b",
-  //   boardBg: "#f5f5f5",
-  // },
   light: {
     border: "#d3d6da",
     filledBorder: "#878a8c",
     emptyBg: "#ffffff",
-    correct: "#99E66F", // Lime
-    present: "#00C2A8", // Teal
-    absent: "#34495E",  // Charcoal
+    correct: "#6aaa64",
+    present: "#c9b458",
+    absent: "#787c7e",
     text: "#1a1a1b",
-    boardBg: "#F4F6F9", // Soft Gray
+    boardBg: "#f5f5f5",
   },
 };
 
@@ -67,9 +58,10 @@ export default function WordleBoard({
   framed = false,
   maxWidth,
   maxHeight,
-  gap = DEFAULT_GAP,
+  gap = 5,
   style,
   revealRowIndex = null,
+  onMetrics,
 }: Props) {
   const theme = useTheme();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -83,38 +75,40 @@ export default function WordleBoard({
     text: theme.colors.textOnSurface,
   };
 
-  const usableWidth = (maxWidth ?? windowWidth - 48);
-  const usableHeight = (maxHeight ?? windowHeight);
-  const horizontalSpace = Math.max(usableWidth, columnCount);
-  const verticalSpace = Math.max(usableHeight, rowCount);
+  // Improved sizing calculation for better consistency
+  const containerWidth = maxWidth ?? Math.min(windowWidth - 32, 400);
+  const spacing = Math.max(5, gap);
+  
+  // Calculate tile size based on container width with consistent spacing
+  const availableWidth = containerWidth - (columnCount - 1) * spacing;
+  const tileSize = Math.max(50, Math.floor(availableWidth / columnCount));
+  
+  // Ensure tile size is reasonable and consistent
+  const finalTileSize = Math.min(tileSize, 62); // Max 62px like web version
+  const boardWidth = columnCount * finalTileSize + (columnCount - 1) * spacing;
+  const letterSize = Math.max(20, Math.floor(finalTileSize * 0.5));
+  const tileRadius = 6; // Consistent radius like web version
 
-  const spacing = Math.max(4, gap);
+  // Report metrics when they change
+  useEffect(() => {
+    if (onMetrics) {
+      onMetrics({ tileSize: finalTileSize, spacing });
+    }
+  }, [finalTileSize, spacing, onMetrics]);
 
-  const tileFromWidth = (horizontalSpace - (columnCount - 1) * spacing) / columnCount;
-  const tileFromHeight = (verticalSpace - (rowCount - 1) * spacing) / rowCount;
-  const tileSize = Math.max(18, Math.floor(Math.min(tileFromWidth, tileFromHeight)));
-
-  if (!Number.isFinite(tileSize) || tileSize <= 0) {
-    return null;
-  }
-
-  const boardWidth = columnCount * tileSize + (columnCount - 1) * spacing;
-  const letterSize = Math.max(16, Math.floor(tileSize * 0.52));
-  const tileRadius = Math.max(6, Math.floor(tileSize * 0.22));
-
-  // flip animations per tile for the reveal row
+  // Improved flip animations with better timing
   const flipAnim = useRef(Array.from({ length: columnCount }, () => new Animated.Value(0))).current;
   useEffect(() => {
     if (revealRowIndex == null) return;
-    // run a staggered flip 0 -> 1
+    // Staggered flip animation with better timing (like web version)
     const animations = flipAnim.map((v, i) =>
       Animated.sequence([
-        Animated.delay(i * 120),
-        Animated.timing(v, { toValue: 1, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.delay(i * 150), // Increased delay for better visual effect
+        Animated.timing(v, { toValue: 1, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ])
     );
-    Animated.stagger(60, animations).start(() => {
-      // reset for future rows
+    Animated.stagger(75, animations).start(() => {
+      // Reset for future rows
       flipAnim.forEach((v) => v.setValue(0));
     });
   }, [revealRowIndex, flipAnim]);
@@ -150,6 +144,7 @@ export default function WordleBoard({
         style,
       ]}
     >
+    
       <View style={{ width: boardWidth }}>
         {rows.map((row, rowIndex) => (
           <View
@@ -179,24 +174,43 @@ export default function WordleBoard({
                 textColor = "#ffffff";
               } else if (state === "tbd") {
                 borderColor = palette.filledBorder;
+                backgroundColor = palette.emptyBg;
+                textColor = palette.text;
+              } else {
+                // empty state
+                borderColor = palette.border;
+                backgroundColor = palette.emptyBg;
+                textColor = palette.text;
               }
 
               const isRevealRow = revealRowIndex === rowIndex && state !== "empty";
-              const tilt = isRevealRow
+              const flipRotation = isRevealRow
                 ? flipAnim[colIndex].interpolate({
                     inputRange: [0, 0.5, 1],
                     outputRange: ["0deg", "90deg", "0deg"],
                   })
                 : ("0deg" as const);
-              const frontOpacity = isRevealRow ? flipAnim[colIndex].interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0, 0] }) : 1;
-              const backOpacity = isRevealRow ? flipAnim[colIndex].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 1] }) : (state === "tbd" ? 0.6 : 1);
+              
+              // Improved opacity interpolation for smoother transitions
+              const frontOpacity = isRevealRow 
+                ? flipAnim[colIndex].interpolate({ 
+                    inputRange: [0, 0.5, 1], 
+                    outputRange: [1, 0, 0] 
+                  }) 
+                : 1;
+              const backOpacity = isRevealRow 
+                ? flipAnim[colIndex].interpolate({ 
+                    inputRange: [0, 0.5, 1], 
+                    outputRange: [0, 0, 1] 
+                  }) 
+                : 1;
 
               return (
                 <Animated.View
                   key={`row-${rowIndex}-col-${colIndex}`}
                   style={{
-                    width: tileSize,
-                    height: tileSize,
+                    width: finalTileSize,
+                    height: finalTileSize,
                     borderRadius: tileRadius,
                     borderWidth: 2,
                     borderColor,
@@ -205,19 +219,42 @@ export default function WordleBoard({
                     justifyContent: "center",
                     marginRight: colIndex === columnCount - 1 ? 0 : spacing,
                     backfaceVisibility: "hidden",
-                    transform: [{ perspective: 800 }, { rotateX: tilt as any }],
+                    transform: [{ perspective: 1000 }, { rotateX: flipRotation as any }],
                   }}
                 >
                   <Animated.Text
                     style={[
                       styles.letter,
-                      { color: textColor, fontSize: letterSize, opacity: frontOpacity as any },
+                      { 
+                        color: textColor, 
+                        fontSize: letterSize, 
+                        opacity: frontOpacity as any,
+                        fontWeight: "700",
+                      },
                     ]}
                   >
                     {letter}
                   </Animated.Text>
-                  <Animated.View style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", opacity: backOpacity as any }}>
-                    <Text style={[styles.letter, { color: "#ffffff", fontSize: letterSize }]}>{letter}</Text>
+                  <Animated.View 
+                    style={{ 
+                      position: "absolute", 
+                      inset: 0, 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      opacity: backOpacity as any,
+                      backfaceVisibility: "hidden",
+                    }}
+                  >
+                    <Text style={[
+                      styles.letter, 
+                      { 
+                        color: "#ffffff", 
+                        fontSize: letterSize,
+                        fontWeight: "700",
+                      }
+                    ]}>
+                      {letter}
+                    </Text>
                   </Animated.View>
                 </Animated.View>
               );
@@ -238,169 +275,10 @@ const styles = StyleSheet.create({
   letter: {
     fontWeight: "700",
     textTransform: "uppercase",
+    textAlign: "center",
   },
 });
 
 
 
 
-
-
-// // WordleBoard.tsx
-// import { MotiText, MotiView } from "moti";
-// import React from "react";
-// import { StyleSheet, useColorScheme, View } from "react-native";
-
-// // --- Color Palette ---
-// const COLORS = {
-//   light: {
-//     border: "#d3d6da",
-//     filledBorder: "#878a8c",
-//     emptyBg: "#ffffff",
-//     correct: "#99E66F", // Lime
-//     present: "#00C2A8", // Teal
-//     absent: "#34495E",  // Charcoal
-//     text: "#1a1a1b",
-//     boardBg: "#F4F6F9", // Soft Gray
-//   },
-//   dark: {
-//     border: "#3a3a3c",
-//     filledBorder: "#565758",
-//     emptyBg: "#121213",
-//     correct: "#99E66F",
-//     present: "#00C2A8",
-//     absent: "#34495E",
-//     text: "#d7dadc",
-//     boardBg: "#000000",
-//   },
-// };
-
-// const tileRadius = 8;
-// const spacing = 4;
-// const rowCount = 6;
-// const columnCount = 5;
-
-// export function WordleBoard({
-//   guesses,
-//   currentGuess,
-//   revealRowIndex,
-//   letterSize = 24,
-//   tileSize = 60,
-// }: {
-//   guesses: { word: string; result: string[] }[];
-//   currentGuess: string;
-//   revealRowIndex: number;
-//   letterSize?: number;
-//   tileSize?: number;
-// }) {
-//   const colorScheme = useColorScheme();
-//   const palette = colorScheme === "dark" ? COLORS.dark : COLORS.light;
-
-//   return (
-//     <View
-//       style={[
-//         styles.board,
-//         { backgroundColor: palette.boardBg },
-//       ]}
-//     >
-//       {Array.from({ length: rowCount }).map((_, rowIndex) => {
-//         const guess = guesses[rowIndex];
-//         const letters = guess
-//           ? guess.word.split("")
-//           : rowIndex === guesses.length
-//           ? currentGuess.split("")
-//           : [];
-
-//         return (
-//           <View key={rowIndex} style={styles.row}>
-//             {Array.from({ length: columnCount }).map((_, colIndex) => {
-//               const letter = letters[colIndex] || "";
-//               let state: "empty" | "filled" | "correct" | "present" | "absent" =
-//                 "empty";
-
-//               if (guess) {
-//                 state = (guess.result[colIndex] as any) || "filled";
-//               } else if (letter) {
-//                 state = "filled";
-//               }
-
-//               const backgroundColor =
-//                 state === "correct"
-//                   ? palette.correct
-//                   : state === "present"
-//                   ? palette.present
-//                   : state === "absent"
-//                   ? palette.absent
-//                   : palette.emptyBg;
-
-//               const borderColor =
-//                 state === "empty"
-//                   ? palette.border
-//                   : state === "filled"
-//                   ? palette.filledBorder
-//                   : backgroundColor;
-
-//               return (
-//                 <MotiView
-//                   key={colIndex}
-//                   from={{ rotateX: "0deg" }}
-//                   animate={{
-//                     rotateX:
-//                       revealRowIndex === rowIndex && state !== "empty"
-//                         ? "180deg"
-//                         : "0deg",
-//                   }}
-//                   transition={{
-//                     type: "timing",
-//                     duration: 350,
-//                     delay: colIndex * 120, // stagger flip by letter
-//                   }}
-//                   style={{
-//                     width: tileSize,
-//                     height: tileSize,
-//                     borderRadius: tileRadius,
-//                     borderWidth: 2,
-//                     borderColor,
-//                     backgroundColor,
-//                     alignItems: "center",
-//                     justifyContent: "center",
-//                     marginRight: colIndex === columnCount - 1 ? 0 : spacing,
-//                   }}
-//                 >
-//                   <MotiText
-//                     from={{ opacity: 0 }}
-//                     animate={{ opacity: 1 }}
-//                     transition={{ delay: 150 }}
-//                     style={[
-//                       styles.letter,
-//                       { color: palette.text, fontSize: letterSize },
-//                     ]}
-//                   >
-//                     {letter}
-//                   </MotiText>
-//                 </MotiView>
-//               );
-//             })}
-//           </View>
-//         );
-//       })}
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   board: {
-//     padding: spacing,
-//     borderRadius: 16,
-//     marginBottom: 16,
-//   },
-//   row: {
-//     flexDirection: "row",
-//     justifyContent: "center",
-//     marginBottom: spacing,
-//   },
-//   letter: {
-//     fontWeight: "bold",
-//     textTransform: "uppercase",
-//   },
-// });

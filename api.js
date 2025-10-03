@@ -1,5 +1,6 @@
 // client/src/api.js
-import { SERVER_URL } from "./config";
+
+const SERVER_URL = "https://wordleplus-production.up.railway.app";
 
 export async function validateWord(word) {
   // Ensure word is a valid string

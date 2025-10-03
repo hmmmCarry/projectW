@@ -1,6 +1,5 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { normalizeGuessStates } from "@/utils/normalizeGuess";
-import React from "react";
 import { View } from "react-native";
 
 type CellState = "correct" | "present" | "absent" | "idle" | "filled";
@@ -21,9 +20,9 @@ function MicroProgressGrid({
   rows = 4,
   cols = 5,
   filled = 0,
-  size = 11,
+  size = 8,
   gap = 2,
-  radius = 4,
+  radius = 2,
   tone,
   patterns,
 }: Props) {
@@ -80,8 +79,8 @@ function MicroProgressGrid({
   return (
     <View
       style={{
-        padding: 3,
-        borderRadius: 10,
+        padding: 4,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: border,
         backgroundColor: "transparent",
@@ -105,15 +104,15 @@ function MicroProgressGrid({
                 width: size,
                 height: size,
                 borderRadius: radius,
-                borderWidth: 1,
+                borderWidth: 0.5,
                 borderColor: border,
                 backgroundColor: colorFor(state),
                 marginRight: isLastInRow ? 0 : gap,
                 marginBottom: isLastRow ? 0 : gap,
-                shadowColor: "#000",
-                shadowOpacity: 0.04,
-                shadowRadius: 1,
-                shadowOffset: { width: 0, height: 1 },
+                // shadowColor: "#000",
+                // shadowOpacity: 0.04,
+                // shadowRadius: 1,
+                // shadowOffset: { width: 0, height: 1 },
               }}
             />
           );
