@@ -1,8 +1,9 @@
 import NavHeader from "@/components/NavHeader";
 import { getSocket } from "@/lib/socket";
+import { useTheme } from "@/providers/ThemeProvider";
 import { Feather, Fontisto } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -43,6 +44,8 @@ type SearchParams = {
 
 export default function Create() {
   const socket = useMemo(() => getSocket(), []);
+  const theme = useTheme();
+  const { colors } = theme;
   const { name: nameParam, autoCreate, roomId: roomParam, hostId: hostParam } =
     useLocalSearchParams<SearchParams>();
 
@@ -239,7 +242,7 @@ export default function Create() {
     const nonHostPlayers = Object.values(room.players).filter((player) => player.id !== room.hostId);
 
     return (
-      <SafeAreaView className="flex-1 bg-gray-100">
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <NavHeader greetingName={name} />
 
         <View className="flex-1 px-4 pt-2">
@@ -376,7 +379,7 @@ export default function Create() {
   return (
     <SafeAreaView>
       <NavHeader greetingName={name} />
-      <View className="min-h-full bg-gray-100 px-4">
+      <View style={{ minHeight: "100%", backgroundColor: colors.background, paddingHorizontal: 16 }}>
         <View className="space-x-3 justify-start px-4">
           <Text className="text-2xl font-bold">Create a game room</Text>
           <Text className="text-md font-bold">

@@ -1,12 +1,14 @@
 ﻿import GameKeyboard from "@/components/Keyboard";
 import NavHeader from "@/components/NavHeader";
+import SecretEntryRow from "@/components/SecretEntryRow";
 import ShareRoomModalCompat from "@/components/ShareRoomModalCompat";
 import VictoryModal from "@/components/VictoryModal";
 import WordleBoard from "@/components/WordleBoard";
 import { getSocket } from "@/lib/socket";
+import { useTheme } from "@/providers/ThemeProvider";
 import { normalizeGuessPatterns, normalizeGuessStates } from "@/utils/normalizeGuess";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, LayoutChangeEvent, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PlayerPill from "./player-pill";
@@ -57,11 +59,13 @@ type ViewMode = "player" | "opponent";
 
 type EnterStatus = "default" | "ready" | "disabled";
 
-const KEYBOARD_HEIGHT = 260;
+//const KEYBOARD_HEIGHT = 215;
 
 export default function DuelGameStart() {
   const router = useRouter();
   const socket = useMemo(() => getSocket(), []);
+  const theme = useTheme();
+  const { colors } = theme;
 
   const { roomId: roomParam, name: nameParam, host: hostParam } = useLocalSearchParams<Params>();
   const roomId = typeof roomParam === "string" ? roomParam : "";
@@ -82,6 +86,7 @@ export default function DuelGameStart() {
   const [viewMode, setViewMode] = useState<ViewMode>("player");
   const [showShare, setShowShare] = useState(false);
   const hasShownShareRef = useRef(false);
+  const [secretTileSize, setSecretTileSize] = useState<number | undefined>(undefined);
 
   const revealKeyRef = useRef<string | null>(null);
   const boardAnim = useRef(new Animated.Value(0)).current;
@@ -137,7 +142,7 @@ export default function DuelGameStart() {
     if (room?.started) return;
     if (hasShownShareRef.current) return;
     hasShownShareRef.current = true;
-    const id = setTimeout(() => setShowShare(true), 0);
+    const id = setTimeout(() => setShowShare(false), 0);
     return () => clearTimeout(id);
   }, [isHost, roomId, room?.started]);
 
@@ -311,7 +316,7 @@ export default function DuelGameStart() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <NavHeader title="Duel" showBack roomId={roomId || undefined} timer={formatTimer(remainingMs)} />
       <View className="flex-1 px-4 pt-2 pb-1">
         <View className="flex-row gap-3">
@@ -323,8 +328,8 @@ export default function DuelGameStart() {
             online={!me?.disconnected}
             guessesCount={me?.guesses?.length ?? 0}
             maxGuesses={MAX_GUESSES}
-            gridRows={2}
-            gridCols={3}
+            gridRows={5}
+            gridCols={5}
             onPress={() => setViewMode("player")}
             active={viewMode === "player"}
             showProgressGrid={true}
@@ -338,7 +343,7 @@ export default function DuelGameStart() {
             online={!!opponent && !opponent.disconnected}
             guessesCount={opponent?.guesses?.length ?? 0}
             maxGuesses={MAX_GUESSES}
-            gridRows={3}
+            gridRows={5}
             gridCols={5}
             onPress={() => setViewMode("opponent")}
             active={viewMode === "opponent"}
@@ -347,7 +352,7 @@ export default function DuelGameStart() {
         </View>
 
         {viewMode === "player" && (
-          <View className="mt-5">
+          <View className="mt-5 items-center">
             {secretError ? (
               <Text className="text-xs text-red-500 mt-2">{secretError}</Text>
             ) : isEnteringSecret ? (
@@ -362,6 +367,12 @@ export default function DuelGameStart() {
               ready={secretReady}
               locked={!!me?.ready}
               error={secretError}
+              tileSize={secretTileSize}
+              enableRandomize={!me?.ready}
+              onChangeValue={(val) => {
+                setSecretInput(val);
+                setSecretError(null);
+              }}
             />
           </View>
         )}
@@ -374,17 +385,19 @@ export default function DuelGameStart() {
           <Animated.View
             style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, flex: 1, pointerEvents: viewMode === "player" ? "auto" : "none" }, playerBoardStyle]}
           >
-            <View style={{ alignItems: "center", marginBottom: 12 }}>
-              <Text className="text-sm text-neutral-600 mb-2 text-center">{stageMessage}</Text>
-              <Text className="text-2xl font-semibold text-neutral-800">{formatTimer(remainingMs)}</Text>
-            </View>
-            <View style={{ flex: 1, justifyContent: "flex-end", alignItems: "center", paddingBottom: 28, paddingHorizontal: 8 }}>
+            
+            <View style={{ flex: 1, justifyContent: "flex-end", alignItems: "center", paddingHorizontal: 8 }}>
               <WordleBoard
                 guesses={myBoard}
                 maxWidth={boardAreaSize.width || undefined}
                 maxHeight={boardAreaSize.height || undefined}
-                gap={6}
+                gap={5}
                 revealRowIndex={me?.guesses?.length ? me.guesses.length - 1 : null}
+                onMetrics={({ tileSize, spacing }) => {
+                  // use the measured board tile size for the secret entry row
+                  // stored via state below
+                  setSecretTileSize(tileSize);
+                }}
               />
             </View>
             {rematchStatus ? (
@@ -408,7 +421,7 @@ export default function DuelGameStart() {
                 guesses={oppBoard}
                 maxWidth={boardAreaSize.width || undefined}
                 maxHeight={boardAreaSize.height || undefined}
-                gap={6}
+                gap={5}
               />
             </View>
           </Animated.View>
@@ -416,7 +429,7 @@ export default function DuelGameStart() {
         </View>
 
       {viewMode === "player" ? (
-        <View style={{ height: KEYBOARD_HEIGHT, justifyContent: "flex-end" }}>
+        <View style={{ justifyContent: "flex-end" ,backgroundColor: "blue"}}>
           <GameKeyboard
             onKeyPress={handleKeyPress}
             enterStatus={enterStatus}
@@ -513,32 +526,7 @@ type SecretEntryProps = {
   error: string | null;
 };
 
-function SecretEntryRow({ value, ready, locked, error }: SecretEntryProps) {
-  const letters = locked ? Array.from({ length: WORD_LENGTH }).map(() => "*") : value.padEnd(WORD_LENGTH, " ").split("");
-  const borderColor = error ? "#ef4444" : ready ? "#4338ca" : "rgba(17,24,39,0.08)";
-
-  return (
-    <View style={{ flexDirection: "row", justifyContent: "center", gap: 10 }}>
-      {letters.map((ch, idx) => (
-        <View
-          key={idx}
-          style={{
-            width: 54,
-            height: 58,
-            borderRadius: 14,
-            borderWidth: 2,
-            borderColor,
-            backgroundColor: locked ? "#4338ca" : "#fff",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ fontSize: 22, fontWeight: "700", color: locked ? "#eef2ff" : "#111827" }}>{ch.trim()}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
+// SecretEntryRow inlined version removed; using shared component from components/SecretEntryRow
 
 function buildBoard(player?: DuelPlayer, pendingGuess = "") {
   const guesses = player?.guesses ?? [];

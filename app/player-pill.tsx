@@ -1,6 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { normalizeGuessStates } from "@/utils/normalizeGuess";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Image, Pressable, Text, View, ViewStyle } from "react-native";
 import MicroProgressGrid from "./micro-progress-grid";
 
@@ -93,7 +93,7 @@ export default function PlayerPill({
   const totalCells = gridRows * gridCols;
   const palette = useMemo(() => {
     const baseTone = tone ?? (theme.mode === "dark" ? "dark" : "light");
-    const colors = baseTone === "dark" ? DARK_COLORS : LIGHT_COLORS;
+    const colors = baseTone === "light" ? DARK_COLORS : LIGHT_COLORS;
     return active ? colors.active : colors.base;
   }, [active, theme.mode, tone]);
 
@@ -132,73 +132,170 @@ export default function PlayerPill({
       disabled={!onPress}
       style={[
         {
-          borderRadius: 32,
+          borderRadius: 28,
           backgroundColor: palette.background,
           borderColor: palette.border,
           borderWidth: 1,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
+          paddingHorizontal: 8,
+          paddingVertical: 8,
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
+          gap: 8,
         },
         style,
       ]}
     >
+      {/* Avatar with online indicator */}
       <View style={{ position: "relative" }}>
         <View
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
             backgroundColor: active ? "rgba(255,255,255,0.28)" : "white",
             borderWidth: 1,
             borderColor: active ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.08)",
             alignItems: "center",
             justifyContent: "center",
+            overflow: "hidden",
           }}
         >
           {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={{ width: 36, height: 36, borderRadius: 18 }} resizeMode="cover" />
+            <Image source={{ uri: avatarUri }} style={{ width: 44, height: 44 }} resizeMode="cover" />
           ) : (
-            <Text style={{ fontSize: 18, color: palette.text }}>{avatarLabel}</Text>
+            <Text style={{ fontSize: 18, fontWeight: "600", color: palette.text }}>{avatarLabel}</Text>
           )}
         </View>
-        <View
-          style={{
-            position: "absolute",
-            left: -2,
-            bottom: -2,
-            width: 12,
-            height: 12,
-            borderRadius: 6,
-            backgroundColor: online ? "#34D399" : "rgba(0,0,0,0.15)",
-            borderWidth: 2,
-            borderColor: palette.badgeBorder,
-          }}
-        />
+        {online && (
+          <View
+            style={{
+              position: "absolute",
+              right: -1,
+              bottom: -1,
+              width: 12,
+              height: 12,
+              borderRadius: 6,
+              backgroundColor: "#34D399",
+              borderWidth: 2,
+              borderColor: palette.background,
+            }}
+          />
+        )}
       </View>
 
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ color: palette.text, fontWeight: "600", fontSize: 14 }}>
-          {name}
-        </Text>
-        <Text style={{ color: palette.meta, fontWeight: "600", fontSize: 11, letterSpacing: 0.2 }}>
-          W:{wins}  STREAK:{streak}
-        </Text>
-      </View>
-
-      {showProgressGrid ? (
+      {/* Micro Progress Grid - Compact Design */}
+      {showProgressGrid && (
         <MicroProgressGrid
           rows={gridRows}
           cols={gridCols}
-          size={11}
+          size={8}
           gap={2}
-          radius={4}
+          radius={2}
           tone={gridTone}
           {...gridProps}
         />
-      ) : null}
+      )}
+
+      {/* Name and Stats - Compact Layout */}
+      
+        {/* <View style={{ flexDirection: "column",alignItems: "center", gap: 6,justifyContent: "center",paddingVertical: 4 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text style={{ 
+              color: palette.meta, 
+              fontWeight: "800", 
+              fontSize: 16,
+            }}>
+             🏆
+            </Text>
+            <Text style={{ 
+              color: palette.text, 
+              fontWeight: "800", 
+              fontSize: 16,
+            }}>
+              {wins}
+            </Text>
+          </View>
+          
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text style={{ 
+              fontSize: 18,
+            
+            }}>
+              🔥
+            </Text>
+            <Text style={{ 
+              color: palette.text, 
+              fontWeight: "800", 
+              fontSize: 16,
+            }}>
+              {streak}
+            </Text>
+          </View>
+        </View> */}
+        <View style={{ flexDirection: "column", gap: 8 }}>
+  {/* Wins Badge */}
+  <View
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      shadowColor: theme.mode === "dark" ? "#000" : "#999",
+      shadowOpacity: 0.25,
+      shadowRadius: 2,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 2, // Android shadow
+    }}
+  >
+    <Text style={{ fontSize: 16, marginRight: 4 }}>🏆</Text>
+    <Text
+      style={{
+        fontSize: 16,
+        fontWeight: "800",
+        color: palette.text,
+        textShadowColor: theme.mode === "dark" ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.6)",
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+      }}
+    >
+      {wins}
+    </Text>
+  </View>
+
+  {/* Streak Badge */}
+  <View
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      shadowColor: theme.mode === "dark" ? "#000" : "#999",
+      shadowOpacity: 0.25,
+      shadowRadius: 2,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 2,
+    }}
+  >
+    <Text style={{ fontSize: 16, marginRight: 4 }}>🔥</Text>
+    <Text
+      style={{
+        fontSize: 16,
+        fontWeight: "800",
+        color: palette.text,
+        textShadowColor: theme.mode === "dark" ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.6)",
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+      }}
+    >
+      {streak}
+    </Text>
+  </View>
+</View>
+
     </Wrapper>
   );
 }

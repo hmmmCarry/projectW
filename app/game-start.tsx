@@ -1,8 +1,9 @@
 import WordleBoard from "@/components/WordleBoard";
 import { getSocket } from "@/lib/socket";
+import { useTheme } from "@/providers/ThemeProvider";
 import { normalizeGuessPatterns } from "@/utils/normalizeGuess";
-import { useLocalSearchParams, router } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PlayerPill from "./player-pill";
@@ -41,6 +42,8 @@ type SyncResponse = { ok?: boolean; error?: string; state?: RoomState };
 
 export default function GameStart() {
   const socket = useMemo(() => getSocket(), []);
+  const theme = useTheme();
+  const { colors } = theme;
   const { roomId: roomParam } = useLocalSearchParams<Params>();
   const roomId = typeof roomParam === "string" ? roomParam : "";
 
@@ -163,7 +166,7 @@ export default function GameStart() {
   }, [room]);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View className="w-full px-4 pt-2">
         <View className="items-center mb-2">
           <Text className="text-xs text-neutral-500">{headerMessage}</Text>
@@ -187,7 +190,7 @@ export default function GameStart() {
               <View style={{ height: 460, justifyContent: "center", alignItems: "center" }}>
                 <WordleBoard
                   guesses={buildBoard(selectedPlayer)}
-                  gap={6}
+                  gap={5}
                   revealRowIndex={selectedPlayer.guesses ? selectedPlayer.guesses.length - 1 : null}
                 />
               </View>

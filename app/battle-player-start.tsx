@@ -1,9 +1,10 @@
 import GameKeyboard from "@/components/Keyboard";
 import WordleBoard from "@/components/WordleBoard";
 import { getSocket } from "@/lib/socket";
+import { useTheme } from "@/providers/ThemeProvider";
 import { normalizeGuessPatterns, normalizeGuessStates } from "@/utils/normalizeGuess";
 import { useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GameResults from "./battle-game-results";
@@ -54,6 +55,8 @@ type Params = { roomId?: string; name?: string };
 
 export default function BattlePlayerGameStart() {
   const socket = useMemo(() => getSocket(), []);
+  const theme = useTheme();
+  const { colors } = theme;
   const { roomId: roomParam, name: nameParam } = useLocalSearchParams<Params>();
   const roomId = typeof roomParam === "string" ? roomParam : "";
   const playerName = typeof nameParam === "string" ? decodeURIComponent(nameParam) : "Player";
@@ -334,7 +337,7 @@ export default function BattlePlayerGameStart() {
 
   if (!room) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-100 items-center justify-center">
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
         <Text className="text-sm text-neutral-500">Connecting to room...</Text>
       </SafeAreaView>
     );
@@ -485,7 +488,7 @@ export default function BattlePlayerGameStart() {
 
   if (showResults) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-100">
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
           <GameResults
             room={room}
@@ -514,7 +517,7 @@ export default function BattlePlayerGameStart() {
 
   if (!room.battle?.started) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-100">
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 28 }}>
           <View className="mt-4 items-center">
             <Text className="text-lg font-semibold text-neutral-800">Battle Lobby</Text>
@@ -535,7 +538,7 @@ export default function BattlePlayerGameStart() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View className="flex-1 px-4 pt-2 pb-3">
         <BattleProgressStrip
           players={stripPlayers}
@@ -570,7 +573,7 @@ export default function BattlePlayerGameStart() {
               guesses={activeBoard}
               rowCount={MAX_GUESSES}
               columnCount={WORD_LENGTH}
-              gap={6}
+              gap={5}
               revealRowIndex={
                 viewingPlayer?.guesses && viewingPlayer.guesses.length > 0
                   ? viewingPlayer.guesses.length - 1
@@ -618,7 +621,7 @@ export default function BattlePlayerGameStart() {
                     guesses={board}
                     rowCount={MAX_GUESSES}
                     columnCount={WORD_LENGTH}
-                    gap={4}
+                    gap={3}
                   />
                 </Pressable>
               ))

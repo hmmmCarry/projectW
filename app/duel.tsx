@@ -1,14 +1,17 @@
 ﻿import NavHeader from "@/components/NavHeader";
 import { getSocket } from "@/lib/socket";
+import { useTheme } from "@/providers/ThemeProvider";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Duel() {
   const router = useRouter();
   const socket = useMemo(() => getSocket(), []);
+  const theme = useTheme();
+  const { colors } = theme;
 
   const [displayName, setDisplayName] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -103,7 +106,7 @@ export default function Duel() {
 
   return (
     <SafeAreaView>
-      <View className=" bg-gray-100 px-4 pb-6">
+      <View style={{ backgroundColor: colors.background, paddingHorizontal: 16, paddingBottom: 24 }}>
         <NavHeader />
 
         <View className="flex-row items-center space-x-3 justify-start mt-4">

@@ -1,4 +1,3 @@
-import React from "react";
 import PlayerPill, { PlayerPillGuessStateInput } from "./player-pill";
 
 export type BattleChipPlayer = {
@@ -20,7 +19,7 @@ type Props = {
   onPress?: () => void;
 };
 
-export default function BattleOpponentChip({ player, tone = "light", active = false, onPress }: Props) {
+export default function BattleOpponentChip({ player, tone , active = false, onPress }: Props) {
   return (
     <PlayerPill
       name={player.name}
