@@ -109,10 +109,6 @@ function MicroProgressGrid({
                 backgroundColor: colorFor(state),
                 marginRight: isLastInRow ? 0 : gap,
                 marginBottom: isLastRow ? 0 : gap,
-                // shadowColor: "#000",
-                // shadowOpacity: 0.04,
-                // shadowRadius: 1,
-                // shadowOffset: { width: 0, height: 1 },
               }}
             />
           );
@@ -121,4 +117,5 @@ function MicroProgressGrid({
     </View>
   );
 }
+
 export default MicroProgressGrid;

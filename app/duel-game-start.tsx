@@ -352,11 +352,11 @@ export default function DuelGameStart() {
         </View>
 
         {viewMode === "player" && (
-          <View className="mt-5 items-center">
+          <View className=" items-center">
             {secretError ? (
               <Text className="text-xs text-red-500 mt-2">{secretError}</Text>
             ) : isEnteringSecret ? (
-              <Text className="text-xs text-neutral-500 mt-2">
+              <Text className="text-xs text-white mt-2">
                 {secretReady ? "Press enter to lock your word." : "Choose your secret word."}
               </Text>
             ) : (
@@ -385,8 +385,8 @@ export default function DuelGameStart() {
           <Animated.View
             style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, flex: 1, pointerEvents: viewMode === "player" ? "auto" : "none" }, playerBoardStyle]}
           >
-            
-            <View style={{ flex: 1, justifyContent: "flex-end", alignItems: "center", paddingHorizontal: 8 }}>
+            <Text className="text-xs text-white  text-center">GUESSES</Text>
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 8 }}>
               <WordleBoard
                 guesses={myBoard}
                 maxWidth={boardAreaSize.width || undefined}
@@ -416,7 +416,9 @@ export default function DuelGameStart() {
                 Tap your pill to return to your guesses.
               </Text>
             </View>
-            <View style={{ flex: 1, justifyContent: "flex-end", alignItems: "center", paddingBottom: 28, paddingHorizontal: 8 }}>
+            <View style={{ flex: 1,  justifyContent: "center",alignItems: "center", paddingBottom: 28, paddingHorizontal: 8 
+
+            }}>
               <WordleBoard
                 guesses={oppBoard}
                 maxWidth={boardAreaSize.width || undefined}

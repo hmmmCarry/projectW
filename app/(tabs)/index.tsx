@@ -2,10 +2,60 @@ import { getSocket } from "@/lib/socket";
 import { useTheme } from "@/providers/ThemeProvider";
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { JSX, useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "../globals.css";
+
+function Section({ title, icon, children }: { title: string; icon?: JSX.Element; children: React.ReactNode }) {
+  const theme = useTheme();
+  const { colors } = theme;
+  
+  return (
+    <View className="mt-6">
+      <View className="flex-row items-center px-4 mb-2">
+        {icon}  
+        <Text style={{ color: colors.text, fontSize: 24, fontWeight: "bold", marginLeft: 8 }}>
+          {title}
+        </Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function GameCard({ onPress, label }: { onPress?: () => void; label?: string }) {
+  const theme = useTheme();
+  const { colors } = theme;
+  
+  return (
+    <Pressable onPress={onPress}>
+      {({ pressed }) => (
+        <View
+          style={{
+            height: 128,
+            width: 208,
+            borderRadius: 16,
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border,
+            justifyContent: "center",
+            alignItems: "center",
+            marginRight: 12,
+            transform: [{ scale: pressed ? 0.96 : 1 }],
+            opacity: pressed ? 0.8 : 1,
+          }}
+        >
+          {label ? (
+            <Text style={{ color: colors.text, fontWeight: "bold", fontSize: 18 }}>
+              {label}
+            </Text>
+          ) : null}
+        </View>
+      )}
+    </Pressable>
+  );
+}
 
 export default function Index() {
   const router = useRouter();
@@ -13,96 +63,65 @@ export default function Index() {
   const theme = useTheme();
   const { colors } = theme;
 
-  const handleDevQuickDuel = () => {
-    if (!__DEV__) return;
-    const name = "Dev";
+  const handleQuickDuel = () => {
+    const name = "Player";
     if (!socket.connected) socket.connect();
-    socket.emit(
-      "createRoom",
-      { name, mode: "duel" },
-      (res?: { roomId?: string; error?: string }) => {
-        if (res?.roomId) {
-          router.push({
-            pathname: "/duel-game-start",
-            params: { roomId: res.roomId, name, host: "1" },
-          });
-        } else {
-          console.warn(res?.error || "Could not create room.");
-        }
+    socket.emit("createRoom", { name, mode: "duel" }, (res?: { roomId?: string; error?: string }) => {
+      if (res?.roomId) {
+        router.push({
+          pathname: "/duel-game-start",
+          params: { roomId: res.roomId, name, host: "1" },
+        });
+      } else {
+        console.warn(res?.error || "Could not create room.");
       }
-    );
+    });
   };
+
   return (
-    <SafeAreaView className="flex-1">
-      <View style={{ paddingHorizontal: 8, justifyContent: "center", backgroundColor: colors.background, marginTop: 16 }}>
-        <View className="flex flex-row items-center justify-between w-full px-4 mb-2">
-          <View className="">
-            <Text className="text-[24px]">Hello there!</Text>
-            <Text className="text-[32px] font-bold">Username</Text>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View className="flex flex-row items-center justify-between px-4 mt-4">
+          <View>
+            <Text style={{ color: colors.textMuted, fontSize: 18 }}>Hello there!</Text>
+            <Text style={{ color: colors.text, fontSize: 32, fontWeight: "bold" }}>Username</Text>
           </View>
-          <View className="flex-row gap-2 items-center">
-            <Ionicons name="person-circle-outline" size={24} color="black" />
-            <Feather name="sun" size={24} color="black" />
+          <View className="flex-row gap-3 items-center">
+            <Ionicons name="person-circle-outline" size={28} color={colors.text} />
+            <Feather name="sun" size={24} color={colors.text} />
           </View>
         </View>
 
-        <View className="w-full px-4 h-1 bg-gray-200"></View>
-
-        <View className="flex-row items-center space-x-3 justify-start px-4 mt-2">
-          <MaterialCommunityIcons name="sword-cross" size={24} color="black" />
-          <Text className="text-2xl font-bold">Duel (1x1)</Text>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="w-full px-4 space-x-4"
-          contentContainerStyle={{ gap: 10 }}
+        {/* Duel Section */}
+        <Section
+          title="Duel (1x1)"
+          icon={<MaterialCommunityIcons name="sword-cross" size={24} color={colors.text} />}
         >
-          <Pressable onPress={() => router.push("/duel")}>
-            <View className="h-32 w-52 bg-gray-400 rounded-lg mt-4"></View>
-          </Pressable>
-          <View className="h-32 w-52 bg-gray-400 rounded-lg mt-4"></View>
-        </ScrollView>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-4">
+            <GameCard onPress={() => router.push("/duel")} label="Create Duel" />
+            <GameCard onPress={handleQuickDuel} label="Quick Duel" />
+          </ScrollView>
+        </Section>
 
-        {__DEV__ ? (
-          <View className="px-4 mt-3">
-            <Pressable
-              onPress={handleDevQuickDuel}
-              className="bg-fuchsia-500 rounded-lg h-12 items-center justify-center"
-            >
-              <Text className="text-white font-bold">Quick Duel (Dev)</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        <View className="flex-row items-center space-x-3 justify-start px-4 mt-2">
-          <MaterialCommunityIcons name="crown" size={24} color="black" />
-          <Text className="text-2xl font-bold">
-            Battle Royale (Multiplayer)
-          </Text>
-        </View>
-
-        <ScrollView
-          showsHorizontalScrollIndicator={false}
-          horizontal
-          className="w-full px-4 space-x-4"
-          contentContainerStyle={{ gap: 10 }}
+        {/* Battle Royale Section */}
+        <Section
+          title="Battle Royale"
+          icon={<MaterialCommunityIcons name="crown" size={24} color={colors.text} />}
         >
-          <Pressable onPress={() => router.push("/battle-royale-lobby")}>
-            <View className="h-32 w-52 bg-gray-400 rounded-lg mt-4"></View>
-          </Pressable>
-          <View className="h-32 w-52 bg-gray-400 rounded-lg mt-4"></View>
-        </ScrollView>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-4">
+            <GameCard onPress={() => router.push("/battle-royale-lobby")} label="Join Match" />
+            <GameCard label="Private Room" />
+          </ScrollView>
+        </Section>
 
-        <View className="flex-row space-x-3 justify-start px-4 mt-4">
-          <Text className="text-2xl font-bold">How to play</Text>
-        </View>
-
-        <View className="w-full px-4">
-          <View className="h-48 w-full bg-gray-400 rounded-lg mt-4"></View>
-        </View>
-      </View>
+        {/* How to play */}
+        <Section title="How to play" icon={<MaterialCommunityIcons name="book-open" size={24} color={colors.text} />}>
+          <View className="px-4">
+            <GameCard label="Tutorial" />
+          </View>
+        </Section>
+      </ScrollView>
     </SafeAreaView>
   );
 }

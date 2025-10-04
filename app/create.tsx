@@ -301,8 +301,9 @@ export default function Create() {
                   key={i}
                   className="w-12 h-12 rounded border text-center text-lg font-bold"
                   style={{
-                    backgroundColor: i === 0 ? "#E3F2FD" : "#F5F5F5",
-                    borderColor: i === 0 ? "#2196F3" : "#E0E0E0",
+                    backgroundColor: i === 0 ? colors.surface : colors.surfaceElevated,
+                    borderColor: i === 0 ? colors.accent : colors.border,
+                    color: colors.text,
                   }}
                   value={word[i] || ""}
                   onChangeText={(text) => {
@@ -322,50 +323,97 @@ export default function Create() {
             <View className="flex-row items-center justify-center gap-2 mb-4">
               <Pressable
                 onPress={() => alert("Generate word feature coming soon!")}
-                className="flex-row items-center gap-2 bg-purple-100 px-4 py-2 rounded-lg"
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: colors.surfaceElevated,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                }}
               >
-                <Text className="text-lg">?</Text>
-                <Text className="text-purple-700 font-medium">Generate</Text>
+                <Text style={{ fontSize: 18, color: colors.text }}>?</Text>
+                <Text style={{ color: colors.accent, fontWeight: "500" }}>Generate</Text>
               </Pressable>
-              <Text className="text-gray-500 text-sm">Enter 5-letter word</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 14 }}>Enter 5-letter word</Text>
             </View>
 
             <Pressable
               onPress={handleStartGame}
-              className={`rounded-lg h-16 items-center justify-center ${
-                word.length === 5 ? "bg-green-400" : "bg-gray-300"
-              }`}
+              style={{
+                borderRadius: 8,
+                height: 64,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: word.length === 5 ? colors.success : colors.surfaceElevated,
+                opacity: word.length === 5 ? 1 : 0.6,
+              }}
               disabled={word.length !== 5}
             >
-              <Text className={`font-bold ${word.length === 5 ? "text-white" : "text-gray-500"}`}>
+              <Text style={{ 
+                fontWeight: "bold", 
+                color: word.length === 5 ? colors.textOnAccent : colors.textMuted 
+              }}>
                 Start Game
               </Text>
             </Pressable>
           </View>
 
-          <View className="bg-white rounded-xl p-4 mt-4">
-            <Text className="text-lg font-semibold text-gray-700 mb-3">
+          <View style={{
+            backgroundColor: colors.card,
+            borderRadius: 12,
+            padding: 16,
+            marginTop: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}>
+            <Text style={{ 
+              fontSize: 18, 
+              fontWeight: "600", 
+              color: colors.text, 
+              marginBottom: 12 
+            }}>
               Players ({nonHostPlayers.length}/6)
             </Text>
 
-            {nonHostPlayers.map((player) => (
+            {nonHostPlayers.map((player, index) => (
               <View
                 key={player.id}
-                className="flex-row items-center justify-between py-2 border-b border-gray-100 last:border-b-0"
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingVertical: 8,
+                  borderBottomWidth: index === nonHostPlayers.length - 1 ? 0 : 1,
+                  borderBottomColor: colors.border,
+                }}
               >
-                <View className="flex-row items-center gap-3">
-                  <View className="w-8 h-8 bg-gray-200 rounded-full items-center justify-center">
-                    <Text className="text-sm font-semibold text-gray-700">
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <View style={{
+                    width: 32,
+                    height: 32,
+                    backgroundColor: colors.surfaceElevated,
+                    borderRadius: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text }}>
                       {(player.name || "?").charAt(0).toUpperCase()}
                     </Text>
                   </View>
-                  <Text className="text-gray-800 font-medium">{player.name || "Unknown"}</Text>
+                  <Text style={{ color: colors.text, fontWeight: "500" }}>{player.name || "Unknown"}</Text>
                 </View>
-                <View className="flex-row items-center gap-4">
-                  <Text className="text-sm text-gray-500">W:{player.wins || 0}</Text>
-                  <Text className="text-sm text-gray-500">S:{player.streak || 0}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+                  <Text style={{ fontSize: 14, color: colors.textMuted }}>W:{player.wins || 0}</Text>
+                  <Text style={{ fontSize: 14, color: colors.textMuted }}>S:{player.streak || 0}</Text>
                   <View
-                    className={`w-2 h-2 rounded-full ${player.disconnected ? "bg-red-400" : "bg-green-400"}`}
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: player.disconnected ? "#ef4444" : colors.success,
+                    }}
                   />
                 </View>
               </View>
@@ -381,8 +429,8 @@ export default function Create() {
       <NavHeader greetingName={name} />
       <View style={{ minHeight: "100%", backgroundColor: colors.background, paddingHorizontal: 16 }}>
         <View className="space-x-3 justify-start px-4">
-          <Text className="text-2xl font-bold">Create a game room</Text>
-          <Text className="text-md font-bold">
+          <Text style={{ color: colors.text, fontSize: 24, fontWeight: "bold" }}>Create a game room</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 16, fontWeight: "bold" }}>
             Tip: Share the room code with friends to play together
           </Text>
         </View>
@@ -390,37 +438,80 @@ export default function Create() {
         {roomId ? (
           <View className="flex-row gap-2 w-full px-4">
             <TextInput
-              className="w-3/4 bg-gray-300 rounded-lg p-2 mt-4 h-16"
+              style={{
+                width: "75%",
+                backgroundColor: colors.surface,
+                borderRadius: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 8,
+                marginTop: 16,
+                height: 64,
+                color: colors.text,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
               placeholder="Room Code"
-              placeholderTextColor="black"
+              placeholderTextColor={colors.textMuted}
               value={roomId}
               editable={false}
             />
             <Pressable
               onPress={copyRoomCode}
-              className="w-1/4 bg-fuchsia-400 rounded-lg p-2 mt-4 h-16 items-center justify-center"
+              style={{
+                width: "25%",
+                backgroundColor: colors.accent,
+                borderRadius: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 8,
+                marginTop: 16,
+                height: 64,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <Feather name="copy" size={24} color="white" />
+              <Feather name="copy" size={24} color={colors.textOnAccent} />
             </Pressable>
           </View>
         ) : (
           <Pressable
             disabled={creating}
             onPress={handleCreateRoom}
-            className="bg-fuchsia-400 rounded-lg mt-4 h-16 items-center justify-center mx-4"
+            style={{
+              backgroundColor: colors.accent,
+              borderRadius: 8,
+              marginTop: 16,
+              height: 64,
+              alignItems: "center",
+              justifyContent: "center",
+              marginHorizontal: 16,
+              opacity: creating ? 0.6 : 1,
+            }}
           >
-            <Text className="text-white font-bold">{creating ? "Creating..." : "Create Room"}</Text>
+            <Text style={{ color: colors.textOnAccent, fontWeight: "bold" }}>
+              {creating ? "Creating..." : "Create Room"}
+            </Text>
           </Pressable>
         )}
 
-        <Text className="text-lg font-semibold mt-4 px-4">
+        <Text style={{ color: colors.text, fontSize: 18, fontWeight: "600", marginTop: 16, paddingHorizontal: 16 }}>
           Enter a word to start the game
         </Text>
 
         <TextInput
-          className="bg-gray-300 rounded-lg p-2 mt-4 h-16 mx-4"
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 8,
+            paddingHorizontal: 8,
+            paddingVertical: 8,
+            marginTop: 16,
+            height: 64,
+            marginHorizontal: 16,
+            color: colors.text,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
           placeholder="Enter 5-letter word"
-          placeholderTextColor="black"
+          placeholderTextColor={colors.textMuted}
           value={word}
           onChangeText={(text) => setWord(text.toUpperCase())}
           maxLength={5}

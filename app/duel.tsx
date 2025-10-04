@@ -110,18 +110,28 @@ export default function Duel() {
         <NavHeader />
 
         <View className="flex-row items-center space-x-3 justify-start mt-4">
-          <MaterialCommunityIcons name="sword-cross" size={24} color="black" />
-          <Text className="text-2xl font-bold">Duel (1x1)</Text>
+          <MaterialCommunityIcons name="sword-cross" size={24} color={colors.text} />
+          <Text style={{ color: colors.text, fontSize: 24, fontWeight: "bold" }}>Duel (1x1)</Text>
         </View>
 
         <View className="mt-5">
-          <Text className="text-xs text-neutral-600 mb-1">Display name</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 4 }}>Display name</Text>
           <TextInput
             value={displayName}
             onChangeText={setDisplayName}
-            className="w-full bg-gray-300 rounded-lg px-3 py-3 h-12"
+            style={{
+              width: "100%",
+              backgroundColor: colors.surface,
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 12,
+              height: 48,
+              color: colors.text,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
             placeholder="How should other players see you?"
-            placeholderTextColor="rgba(0,0,0,0.4)"
+            placeholderTextColor={colors.textMuted}
             autoCapitalize="words"
             maxLength={18}
           />
@@ -131,9 +141,19 @@ export default function Duel() {
           <TextInput
             value={joinCode}
             onChangeText={(txt) => setJoinCode(txt.toUpperCase())}
-            className="w-3/4 bg-gray-300 rounded-lg p-2 h-16"
+            style={{
+              width: "75%",
+              backgroundColor: colors.surface,
+              borderRadius: 8,
+              paddingHorizontal: 8,
+              paddingVertical: 8,
+              height: 64,
+              color: colors.text,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
             placeholder="Enter code to join game room"
-            placeholderTextColor="black"
+            placeholderTextColor={colors.textMuted}
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={6}
@@ -141,37 +161,52 @@ export default function Duel() {
           <Pressable
             onPress={handleJoin}
             disabled={loading === "join"}
-            className={`w-1/4 rounded-lg p-2 mt-0 h-16 items-center justify-center ${
-              loading === "join" ? "bg-fuchsia-200" : "bg-fuchsia-400"
-            }`}
+            style={{
+              width: "25%",
+              borderRadius: 8,
+              paddingHorizontal: 8,
+              marginTop: 0,
+              height: 64,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: loading === "join" ? colors.surfaceElevated : colors.accent,
+              opacity: loading === "join" ? 0.6 : 1,
+            }}
           >
-            <Text className="text-white font-bold">
+            <Text style={{ color: colors.textOnAccent, fontWeight: "bold" }}>
               {loading === "join" ? "Joining" : "Join"}
             </Text>
           </Pressable>
         </View>
 
-        <View className="bg-gray-200 h-1 mt-4" />
+        <View style={{ backgroundColor: colors.border, height: 4, marginTop: 16, borderRadius: 2 }} />
 
         <Pressable
           onPress={handleCreate}
           disabled={loading === "create"}
-          className={`rounded-lg mt-4 h-16 items-center justify-center mx-4 ${
-            loading === "create" ? "bg-fuchsia-200" : "bg-fuchsia-400"
-          }`}
+          style={{
+            borderRadius: 8,
+            marginTop: 16,
+            height: 64,
+            alignItems: "center",
+            justifyContent: "center",
+            marginHorizontal: 16,
+            backgroundColor: loading === "create" ? colors.surfaceElevated : colors.accent,
+            opacity: loading === "create" ? 0.6 : 1,
+          }}
         >
-          <Text className="text-white font-bold">
+          <Text style={{ color: colors.textOnAccent, fontWeight: "bold" }}>
             {loading === "create" ? "Creating" : "Create Room"}
           </Text>
         </Pressable>
 
         {(error || status) && (
-          <View className="mt-4 px-2">
+          <View style={{ marginTop: 16, paddingHorizontal: 8 }}>
             {error ? (
-              <Text className="text-sm text-red-500">{error}</Text>
+              <Text style={{ fontSize: 14, color: "#ef4444" }}>{error}</Text>
             ) : null}
             {status ? (
-              <Text className="text-xs text-neutral-500 mt-1">{status}</Text>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>{status}</Text>
             ) : null}
           </View>
         )}
